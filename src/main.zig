@@ -49,7 +49,7 @@ pub fn main() anyerror!void {
     c.glMatrixLoadIdentityEXT(c.GL_PROJECTION);
     c.glMatrixOrthoEXT(c.GL_PROJECTION, 0.0, 1920.0, 0.0, 1080.0, -1.0, 1.0);
     c.glClearColor(1.0, 1.0, 1.0, 1.0);
-    c.glLineWidth(17.0);
+    c.glLineWidth(7.0);
     c.glEnable(c.GL_FRAMEBUFFER_SRGB);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
