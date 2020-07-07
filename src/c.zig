@@ -14,6 +14,8 @@ var glCreateBuffers_fn: PFNGLCREATEBUFFERSPROC = undefined;
 var glCreateFramebuffers_fn: PFNGLCREATEFRAMEBUFFERSPROC = undefined;
 var glDeleteFramebuffers_fn: PFNGLDELETEFRAMEBUFFERSPROC = undefined;
 var glBindFramebuffer_fn: PFNGLBINDFRAMEBUFFERPROC = undefined;
+var glClearBufferfv_fn: PFNGLCLEARBUFFERFVPROC = undefined;
+var glClearBufferfi_fn: PFNGLCLEARBUFFERFIPROC = undefined;
 
 pub fn loadGraphicsEntryPoints() void {
     glMatrixLoadIdentityEXT_fn = @ptrCast(PFNGLMATRIXLOADIDENTITYEXTPROC, glfwGetProcAddress("glMatrixLoadIdentityEXT"));
@@ -27,6 +29,8 @@ pub fn loadGraphicsEntryPoints() void {
     glCreateFramebuffers_fn = @ptrCast(PFNGLCREATEFRAMEBUFFERSPROC, glfwGetProcAddress("glCreateFramebuffers"));
     glDeleteFramebuffers_fn = @ptrCast(PFNGLDELETEFRAMEBUFFERSPROC, glfwGetProcAddress("glDeleteFramebuffers"));
     glBindFramebuffer_fn = @ptrCast(PFNGLBINDFRAMEBUFFERPROC, glfwGetProcAddress("glBindFramebuffer"));
+    glClearBufferfv_fn = @ptrCast(PFNGLCLEARBUFFERFVPROC, glfwGetProcAddress("glClearBufferfv"));
+    glClearBufferfi_fn = @ptrCast(PFNGLCLEARBUFFERFIPROC, glfwGetProcAddress("glClearBufferfi"));
 }
 
 pub inline fn glMatrixLoadIdentityEXT(mode: GLenum) void {
@@ -61,4 +65,10 @@ pub inline fn glDeleteFramebuffers(n: GLsizei, framebuffers: [*c]GLuint) void {
 }
 pub inline fn glBindFramebuffer(target: GLenum, framebuffer: GLuint) void {
     glBindFramebuffer_fn.?(target, framebuffer);
+}
+pub inline fn glClearBufferfv(buffer: GLenum, drawbuffer: GLint, value: [*c]const GLfloat) void {
+    glClearBufferfv_fn.?(buffer, drawbuffer, value);
+}
+pub inline fn glClearBufferfi(buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint) void {
+    glClearBufferfi_fn.?(buffer, drawbuffer, depth, stencil);
 }

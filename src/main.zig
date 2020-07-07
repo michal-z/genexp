@@ -48,7 +48,6 @@ pub fn main() anyerror!void {
 
     c.glMatrixLoadIdentityEXT(c.GL_PROJECTION);
     c.glMatrixOrthoEXT(c.GL_PROJECTION, 0.0, 1920.0, 0.0, 1080.0, -1.0, 1.0);
-    c.glClearColor(1.0, 1.0, 1.0, 1.0);
     c.glLineWidth(7.0);
     c.glEnable(c.GL_FRAMEBUFFER_SRGB);
     c.glEnable(c.GL_BLEND);
@@ -64,7 +63,7 @@ pub fn main() anyerror!void {
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
-        c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT | c.GL_STENCIL_BUFFER_BIT);
+        c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
 
         c.glBegin(c.GL_LINES);
         c.glColor4f(0.0, 0.0, 0.0, 1.0);
