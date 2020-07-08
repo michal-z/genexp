@@ -15,12 +15,59 @@ fn graphicsErrorCallback(source: c.GLenum, stype: c.GLenum, id: c.GLuint, severi
     }
 }
 
+const FpsStats = struct {
+    timer: std.time.Timer,
+    previous_time_ns: u64,
+    header_refresh_time_ns: u64,
+    frame_count: u64,
+    time: f64,
+    delta_time: f32,
+
+    fn init() FpsStats {
+        const timer = std.time.Timer.start() catch unreachable;
+        const ns = timer.read();
+        return FpsStats{
+            .timer = timer,
+            .previous_time_ns = ns,
+            .header_refresh_time_ns = ns,
+            .frame_count = 0,
+            .time = 0.0,
+            .delta_time = 0.0,
+        };
+    }
+
+    fn update(self: *FpsStats, window: ?*c.GLFWwindow, name: []const u8) void {
+        const now_ns = self.timer.read();
+
+        self.time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
+        self.delta_time = @intToFloat(f32, now_ns - self.previous_time_ns) / std.time.ns_per_s;
+        self.previous_time_ns = now_ns;
+
+        if ((now_ns - self.header_refresh_time_ns) >= std.time.ns_per_s) {
+            const t = @intToFloat(f64, now_ns - self.header_refresh_time_ns) / std.time.ns_per_s;
+            const fps = @intToFloat(f64, self.frame_count) / t;
+            const ms = (1.0 / fps) * 1000.0;
+
+            var buffer = [_]u8{0} ** 256;
+            const buffer_slice = buffer[0..];
+            const header = std.fmt.bufPrint(buffer_slice, "[{d:.1} fps  {d:.3} ms] {}", .{ fps, ms, name }) catch unreachable;
+            c.glfwSetWindowTitle(window, &header[0]);
+
+            self.header_refresh_time_ns = now_ns;
+            self.frame_count = 0;
+        }
+        self.frame_count += 1;
+    }
+};
+
 pub fn main() anyerror!void {
     _ = c.glfwSetErrorCallback(errorCallback);
     if (c.glfwInit() == c.GLFW_FALSE) {
         panic("Failed to init GLFW.\n", .{});
     }
     defer c.glfwTerminate();
+
+    var fps_stats = FpsStats.init();
 
     c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 4);
     c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -48,7 +95,7 @@ pub fn main() anyerror!void {
 
     c.glMatrixLoadIdentityEXT(c.GL_PROJECTION);
     c.glMatrixOrthoEXT(c.GL_PROJECTION, 0.0, 1920.0, 0.0, 1080.0, -1.0, 1.0);
-    c.glLineWidth(7.0);
+    c.glLineWidth(3.0);
     c.glEnable(c.GL_FRAMEBUFFER_SRGB);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -62,14 +109,21 @@ pub fn main() anyerror!void {
     c.glNamedFramebufferTexture(fbo, c.GL_COLOR_ATTACHMENT0, fbo_texture, 0);
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
+        fps_stats.update(window, "genexp");
+
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
         c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
 
-        c.glBegin(c.GL_LINES);
         c.glColor4f(0.0, 0.0, 0.0, 1.0);
-        c.glVertex2f(0.0, 300.0);
-        c.glColor4f(0.0, 0.0, 0.0, 0.0);
-        c.glVertex2f(1920.0, 300.0);
+        c.glBegin(c.GL_LINE_STRIP);
+
+        var x: f32 = 100.0;
+        var y: f32 = 300.0;
+        while (x <= 1200.0) {
+            c.glVertex2f(x, if (y > 0.0) 300.0 else 100.0);
+            y = -y;
+            x += 25.0;
+        }
         c.glEnd();
 
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
