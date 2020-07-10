@@ -23,22 +23,25 @@ fn graphicsErrorCallback(
     }
 }
 
-fn returnData() struct { time: f64, delta_time: f32 } {
-    var time: f64 = 1.0;
-    var delta_time: f32 = 2.0;
-    return .{ .time = time, .delta_time = delta_time };
-}
-
 const Vec3 = struct {
     x: f32,
     y: f32,
     z: f32,
 
-    pub fn add(self: *Vec3, other: Vec3) Vec3 {
-        self.x += other.x;
-        self.y += other.y;
-        self.z += other.z;
-        return self.*;
+    pub fn add(a: Vec3, b: Vec3) Vec3 {
+        return Vec3{
+            .x = a.x + b.x,
+            .y = a.y + b.y,
+            .z = a.z + b.z,
+        };
+    }
+
+    pub fn dot(a: Vec3, b: Vec3) f32 {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    pub fn length2(a: Vec3) f32 {
+        return dot(a, a);
     }
 };
 
@@ -53,10 +56,9 @@ test "vec3" {
         .y = 5.0,
         .z = 6.0,
     };
-    const v3 = v0.add(v1).add(v1);
-    const r = returnData();
-    //assert(v0.x == 9.0 and v3.x == 9.0);
-    assert(r.time == 1.0 and r.delta_time == 2.0);
+    v0 = v0.add(v1);
+    assert(v0.x == 5.0);
+    _ = v1.length2();
 }
 
 fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
