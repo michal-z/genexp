@@ -1,9 +1,13 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const math = std.math;
 const panic = std.debug.panic;
 const warn = std.debug.warn;
 const assert = std.debug.assert;
 const c = @import("c.zig");
+
+const window_width = 1920;
+const window_height = 1080;
 
 fn errorCallback(err: c_int, description: [*c]const u8) callconv(.C) void {
     panic("Error: {}\n", .{@as([*:0]const u8, description)});
@@ -28,7 +32,7 @@ const Vec3 = struct {
     y: f32,
     z: f32,
 
-    pub fn add(a: Vec3, b: Vec3) Vec3 {
+    fn add(a: Vec3, b: Vec3) Vec3 {
         return Vec3{
             .x = a.x + b.x,
             .y = a.y + b.y,
@@ -36,12 +40,12 @@ const Vec3 = struct {
         };
     }
 
-    pub fn dot(a: Vec3, b: Vec3) f32 {
+    fn dot(a: Vec3, b: Vec3) f32 {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    pub fn length2(a: Vec3) f32 {
-        return dot(a, a);
+    fn length(a: Vec3) f32 {
+        return math.sqrt(dot(a, a));
     }
 };
 
@@ -58,7 +62,7 @@ test "vec3" {
     };
     v0 = v0.add(v1);
     assert(v0.x == 5.0);
-    _ = v1.length2();
+    _ = v1.length();
 }
 
 fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
@@ -104,7 +108,7 @@ fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f
     return .{ .time = time, .delta_time = delta_time };
 }
 
-pub fn main() anyerror!void {
+pub fn main() void {
     _ = c.glfwSetErrorCallback(errorCallback);
     if (c.glfwInit() == c.GLFW_FALSE) {
         panic("Failed to init GLFW.\n", .{});
@@ -121,7 +125,13 @@ pub fn main() anyerror!void {
     c.glfwWindowHint(c.GLFW_STENCIL_BITS, 8);
     c.glfwWindowHint(c.GLFW_RESIZABLE, c.GLFW_FALSE);
 
-    const window: *c.GLFWwindow = c.glfwCreateWindow(1920, 1080, "genexp", null, null) orelse {
+    const window: *c.GLFWwindow = c.glfwCreateWindow(
+        window_width,
+        window_height,
+        "genexp",
+        null,
+        null,
+    ) orelse {
         panic("Failed to create window.\n", .{});
     };
     defer c.glfwDestroyWindow(window);
@@ -136,8 +146,17 @@ pub fn main() anyerror!void {
     }
 
     c.glMatrixLoadIdentityEXT(c.GL_PROJECTION);
-    c.glMatrixOrthoEXT(c.GL_PROJECTION, 0.0, 1920.0, 0.0, 1080.0, -1.0, 1.0);
+    c.glMatrixOrthoEXT(
+        c.GL_PROJECTION,
+        -window_width * 0.5,
+        window_width * 0.5,
+        -window_height * 0.5,
+        window_height * 0.5,
+        -1.0,
+        1.0,
+    );
     c.glLineWidth(3.0);
+    c.glPointSize(5.0);
     c.glEnable(c.GL_FRAMEBUFFER_SRGB);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -157,20 +176,32 @@ pub fn main() anyerror!void {
         c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
 
         c.glColor4f(0.0, 0.0, 0.0, 1.0);
-        c.glBegin(c.GL_LINE_STRIP);
+        c.glBegin(c.GL_LINE_LOOP);
 
-        var x: f32 = 100.0;
-        var y: f32 = 300.0;
-        while (x <= 1200.0) {
-            c.glVertex2f(x, if (y > 0.0) 300.0 else 100.0);
-            y = -y;
-            x += 25.0;
+        var phi: f32 = 0.0;
+        while (phi < 2.0 * math.pi) {
+            const x = 300.0 * math.cos(phi);
+            const y = 300.0 * math.sin(phi);
+            c.glVertex2f(x, y);
+            phi += (2.0 * math.pi) / 16.0;
         }
         c.glEnd();
 
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
-
-        c.glBlitNamedFramebuffer(fbo, 0, 0, 0, 1920, 1080, 0, 0, 1920, 1080, c.GL_COLOR_BUFFER_BIT, c.GL_NEAREST);
+        c.glBlitNamedFramebuffer(
+            fbo,
+            0,
+            0,
+            0,
+            window_width,
+            window_height,
+            0,
+            0,
+            window_width,
+            window_height,
+            c.GL_COLOR_BUFFER_BIT,
+            c.GL_NEAREST,
+        );
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
     }
