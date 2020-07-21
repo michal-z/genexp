@@ -135,14 +135,14 @@ pub fn main() !void {
     c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 1.0 });
     c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
 
-    var demo_state = genexp.DemoState{};
-    try genexp.init(&demo_state);
+    var genexp_state = genexp.GenerativeExperimentState{};
+    try genexp.init(&genexp_state);
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
 
         const stats = updateFrameStats(window, genexp.window_name);
-        genexp.update(&demo_state, stats.time, stats.delta_time);
+        genexp.update(&genexp_state, stats.time, stats.delta_time);
 
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
         c.glBlitNamedFramebuffer(
@@ -163,7 +163,7 @@ pub fn main() !void {
         c.glfwPollEvents();
     }
 
-    genexp.deinit(&demo_state);
+    genexp.deinit(&genexp_state);
     c.glDeleteFramebuffers(1, &fbo);
     c.glDeleteTextures(1, &fbo_texture);
 }
