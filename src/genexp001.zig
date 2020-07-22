@@ -15,7 +15,10 @@ pub const GenerativeExperimentState = struct {
 
 pub fn init(genexp: *GenerativeExperimentState) !void {
     genexp.prng = std.rand.DefaultPrng.init(0);
+
     c.glPointSize(7.0);
+    c.glEnable(c.GL_BLEND);
+    c.glBlendFunc(c.GL_ONE, c.GL_ONE);
 }
 
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
@@ -53,7 +56,13 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         position.y = 0.0;
     }
 
-    c.glColor4f(0.0, 0.5, 0.0, 1.0);
+    const rc = genexp.prng.random.uintLessThan(u8, 3);
+    switch (rc) {
+        0 => c.glColor4f(0.5, 0.0, 0.0, 1.0),
+        1 => c.glColor4f(0.0, 0.5, 0.0, 1.0),
+        2 => c.glColor4f(0.0, 0.0, 0.5, 1.0),
+        else => unreachable,
+    }
     c.glBegin(c.GL_POINTS);
     c.glVertex2f(position.x, position.y);
     c.glEnd();
