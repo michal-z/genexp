@@ -1,6 +1,7 @@
 pub usingnamespace @cImport({
     @cDefine("GLFW_INCLUDE_GLEXT", "");
     @cInclude("GLFW/glfw3.h");
+    @cInclude("stb_perlin.h");
 });
 
 var glMatrixLoadIdentityEXT_fn: PFNGLMATRIXLOADIDENTITYEXTPROC = undefined;

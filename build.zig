@@ -4,6 +4,7 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("genexp", "src/main.zig");
+    exe.addCSourceFile("external/include/stb_perlin_impl.c", &[_][]const u8{"-std=c99"});
     exe.setTarget(.{
         .cpu_arch = .x86_64,
         .os_tag = .windows,

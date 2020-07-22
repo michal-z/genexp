@@ -21,6 +21,8 @@ pub fn init(genexp: *GenerativeExperimentState) !void {
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 
+    _ = c.stb_perlin_noise3(0.1, 0.0, 0.0, 0, 0, 0);
+
     genexp.data = try @TypeOf(genexp.data).initCapacity(std.heap.page_allocator, 1024);
     try genexp.data.append(Vec2{ .x = 100.0, .y = 100.0 });
     try genexp.data.append(Vec2{ .x = 0.0, .y = 0.0 });

@@ -4,7 +4,7 @@ const panic = std.debug.panic;
 const warn = std.debug.warn;
 const assert = std.debug.assert;
 const c = @import("c.zig");
-const genexp = @import("genexp001.zig");
+const genexp = @import("genexp002.zig");
 
 fn errorCallback(err: c_int, description: [*c]const u8) callconv(.C) void {
     panic("Error: {}\n", .{@as([*:0]const u8, description)});
@@ -132,7 +132,7 @@ pub fn main() !void {
     c.glCreateFramebuffers(1, &fbo);
     c.glNamedFramebufferTexture(fbo, c.GL_COLOR_ATTACHMENT0, fbo_texture, 0);
     c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
-    c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 1.0 });
+    c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
     c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
 
     var genexp_state = genexp.GenerativeExperimentState{};
