@@ -18,3 +18,10 @@ pub const Vec2 = packed struct {
         return Vec2{ .x = f * a.x, .y = f * a.y };
     }
 };
+
+pub const Color = packed struct {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+};

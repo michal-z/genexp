@@ -14,6 +14,7 @@ const num_objects = 128;
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng = undefined,
     positions: []Vec2 = &[_]Vec2{},
+    colors: []Color = &[_]Color{},
     velocities: []Vec2 = &[_]Vec2{},
     accelerations: []Vec2 = &[_]Vec2{},
 };
@@ -22,11 +23,11 @@ pub fn init(genexp: *GenerativeExperimentState) !void {
     genexp.prng = std.rand.DefaultPrng.init(0);
     const rand = &genexp.prng.random;
 
-    c.glPointSize(127.0);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 
     genexp.positions = try allocator.alloc(Vec2, num_objects);
+    genexp.colors = try allocator.alloc(Color, num_objects);
     genexp.velocities = try allocator.alloc(Vec2, num_objects);
     genexp.accelerations = try allocator.alloc(Vec2, num_objects);
 
@@ -35,6 +36,13 @@ pub fn init(genexp: *GenerativeExperimentState) !void {
         pos.*.y = 2.0 * rand.float(f32) - 1.0;
         pos.*.x *= window_width * 0.5;
         pos.*.y *= window_height * 0.5;
+    }
+
+    for (genexp.colors) |*color| {
+        color.*.r = rand.int(u8);
+        color.*.g = rand.int(u8);
+        color.*.b = rand.int(u8);
+        color.*.a = 128;
     }
 
     for (genexp.velocities) |*vel| {
@@ -76,13 +84,23 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.2, 0.4, 0.8, 1.0 });
     c.glColor4f(1.0, 1.0, 1.0, 0.75);
     c.glEnableClientState(c.GL_VERTEX_ARRAY);
+    c.glEnableClientState(c.GL_COLOR_ARRAY);
     c.glVertexPointer(2, c.GL_FLOAT, 0, genexp.positions.ptr);
+    c.glColorPointer(4, c.GL_UNSIGNED_BYTE, 0, genexp.colors.ptr);
+
+    c.glPointSize(127.0);
     c.glDrawArrays(c.GL_POINTS, 0, @intCast(c_int, genexp.positions.len));
+
+    c.glPointSize(101.0);
+    c.glDrawArrays(c.GL_POINTS, 0, @intCast(c_int, genexp.positions.len));
+
     c.glDisableClientState(c.GL_VERTEX_ARRAY);
+    c.glDisableClientState(c.GL_COLOR_ARRAY);
 }
 
 pub fn deinit(genexp: *GenerativeExperimentState) void {
     allocator.free(genexp.positions);
+    allocator.free(genexp.colors);
     allocator.free(genexp.velocities);
     allocator.free(genexp.accelerations);
 }
