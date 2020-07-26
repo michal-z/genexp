@@ -12,4 +12,9 @@ pub const Vec2 = packed struct {
     pub fn length(a: Vec2) f32 {
         return math.sqrt(dot(a, a));
     }
+
+    pub fn normalize(a: Vec2) Vec2 {
+        const f = 1.0 / a.length();
+        return Vec2{ .x = f * a.x, .y = f * a.y };
+    }
 };
