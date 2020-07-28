@@ -9,7 +9,7 @@ pub const window_name = "genexp002";
 pub const window_width = 1920;
 pub const window_height = 1080;
 
-const num_objects = 128;
+const num_objects = 100;
 
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng = undefined,
@@ -23,6 +23,7 @@ pub fn init(genexp: *GenerativeExperimentState) !void {
     genexp.prng = std.rand.DefaultPrng.init(0);
     const rand = &genexp.prng.random;
 
+    c.glPointSize(7.0);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 
@@ -81,17 +82,20 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         genexp.positions[i].y += vel.*.y;
     }
 
-    c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.2, 0.4, 0.8, 1.0 });
-    c.glColor4f(1.0, 1.0, 1.0, 0.75);
+    c.glColor4f(0.0, 0.0, 0.0, 0.1);
+    c.glBegin(c.GL_QUADS);
+    c.glVertex2i(-window_width / 2, -window_height / 2);
+    c.glVertex2i(window_width / 2, -window_height / 2);
+    c.glVertex2i(window_width / 2, window_height / 2);
+    c.glVertex2i(-window_width / 2, window_height / 2);
+    c.glEnd();
+
+    c.glColor4f(1.0, 1.0, 1.0, 0.9);
     c.glEnableClientState(c.GL_VERTEX_ARRAY);
     c.glEnableClientState(c.GL_COLOR_ARRAY);
     c.glVertexPointer(2, c.GL_FLOAT, 0, genexp.positions.ptr);
     c.glColorPointer(4, c.GL_UNSIGNED_BYTE, 0, genexp.colors.ptr);
 
-    c.glPointSize(127.0);
-    c.glDrawArrays(c.GL_POINTS, 0, @intCast(c_int, genexp.positions.len));
-
-    c.glPointSize(101.0);
     c.glDrawArrays(c.GL_POINTS, 0, @intCast(c_int, genexp.positions.len));
 
     c.glDisableClientState(c.GL_VERTEX_ARRAY);
