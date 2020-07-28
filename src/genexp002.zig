@@ -9,7 +9,8 @@ pub const window_name = "genexp002";
 pub const window_width = 1920;
 pub const window_height = 1080;
 
-const num_objects = 100;
+const num_objects = 256;
+const max_vel = 5.0;
 
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng = undefined,
@@ -23,7 +24,7 @@ pub fn init(genexp: *GenerativeExperimentState) !void {
     genexp.prng = std.rand.DefaultPrng.init(0);
     const rand = &genexp.prng.random;
 
-    c.glPointSize(7.0);
+    c.glLineWidth(5.0);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 
@@ -73,15 +74,6 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         }
     }
 
-    for (genexp.velocities) |*vel, i| {
-        vel.*.x += genexp.accelerations[i].x;
-        vel.*.y += genexp.accelerations[i].y;
-        vel.*.x = if (vel.*.x < -10.0) -10.0 else if (vel.*.x > 10.0) 10.0 else vel.*.x;
-        vel.*.y = if (vel.*.y < -10.0) -10.0 else if (vel.*.y > 10.0) 10.0 else vel.*.y;
-        genexp.positions[i].x += vel.*.x;
-        genexp.positions[i].y += vel.*.y;
-    }
-
     c.glColor4f(0.0, 0.0, 0.0, 0.1);
     c.glBegin(c.GL_QUADS);
     c.glVertex2i(-window_width / 2, -window_height / 2);
@@ -90,16 +82,22 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     c.glVertex2i(-window_width / 2, window_height / 2);
     c.glEnd();
 
-    c.glColor4f(1.0, 1.0, 1.0, 0.9);
-    c.glEnableClientState(c.GL_VERTEX_ARRAY);
-    c.glEnableClientState(c.GL_COLOR_ARRAY);
-    c.glVertexPointer(2, c.GL_FLOAT, 0, genexp.positions.ptr);
-    c.glColorPointer(4, c.GL_UNSIGNED_BYTE, 0, genexp.colors.ptr);
+    c.glBegin(c.GL_LINES);
+    for (genexp.velocities) |*vel, i| {
+        vel.*.x += genexp.accelerations[i].x;
+        vel.*.y += genexp.accelerations[i].y;
+        vel.*.x = if (vel.*.x < -max_vel) -max_vel else if (vel.*.x > max_vel) max_vel else vel.*.x;
+        vel.*.y = if (vel.*.y < -max_vel) -max_vel else if (vel.*.y > max_vel) max_vel else vel.*.y;
 
-    c.glDrawArrays(c.GL_POINTS, 0, @intCast(c_int, genexp.positions.len));
+        c.glColor3ub(genexp.colors[i].r, genexp.colors[i].g, genexp.colors[i].b);
+        c.glVertex2f(genexp.positions[i].x, genexp.positions[i].y);
 
-    c.glDisableClientState(c.GL_VERTEX_ARRAY);
-    c.glDisableClientState(c.GL_COLOR_ARRAY);
+        genexp.positions[i].x += vel.*.x;
+        genexp.positions[i].y += vel.*.y;
+
+        c.glVertex2f(genexp.positions[i].x, genexp.positions[i].y);
+    }
+    c.glEnd();
 }
 
 pub fn deinit(genexp: *GenerativeExperimentState) void {
