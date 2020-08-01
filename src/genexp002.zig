@@ -89,7 +89,7 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         vel.*.x = if (vel.*.x < -max_vel) -max_vel else if (vel.*.x > max_vel) max_vel else vel.*.x;
         vel.*.y = if (vel.*.y < -max_vel) -max_vel else if (vel.*.y > max_vel) max_vel else vel.*.y;
 
-        c.glColor3ub(genexp.colors[i].r, genexp.colors[i].g, genexp.colors[i].b);
+        c.glColor4ub(genexp.colors[i].r, genexp.colors[i].g, genexp.colors[i].b, 200);
         c.glVertex2f(genexp.positions[i].x, genexp.positions[i].y);
 
         genexp.positions[i].x += vel.*.x;
