@@ -13,16 +13,19 @@ pub const window_height = 1080;
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
     square: SandShape,
+    triangle: SandShape,
 
     pub fn init() GenerativeExperimentState {
         return GenerativeExperimentState{
             .prng = std.rand.DefaultPrng.init(0),
             .square = SandShape.init(default_allocator),
+            .triangle = SandShape.init(default_allocator),
         };
     }
 
     pub fn deinit(self: GenerativeExperimentState) void {
         self.square.deinit();
+        self.triangle.deinit();
     }
 };
 
@@ -73,6 +76,10 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     try genexp.square.points.append(SandPoint.init(100.0, 100.0, rand));
     try genexp.square.points.append(SandPoint.init(-100.0, 100.0, rand));
 
+    try genexp.triangle.points.append(SandPoint.init(0.0, 100.0, rand));
+    try genexp.triangle.points.append(SandPoint.init(-100.0, -100.0, rand));
+    try genexp.triangle.points.append(SandPoint.init(100.0, -100.0, rand));
+
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -81,21 +88,13 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
     c.glColor4f(0.0, 0.0, 0.0, 0.5);
 
-    var x: f32 = -window_width * 0.5 + 200.0;
-    var y: f32 = -window_height * 0.5 + 250.0;
-    var angle: f32 = 0.0;
+    c.glPushMatrix();
+    c.glTranslatef(-300.0, 0.0, 0.0);
+    genexp.square.draw();
+    c.glPopMatrix();
 
-    while (y < window_height * 0.5) {
-        while (x < window_width * 0.5) {
-            c.glPushMatrix();
-            c.glTranslatef(x, y, 0.0);
-            c.glRotated(angle, 0.0, 0.0, 1.0);
-            genexp.square.draw();
-            c.glPopMatrix();
-            x += 300.0;
-            angle += 30.0;
-        }
-        x = -window_width * 0.5 + 200.0;
-        y += 300.0;
-    }
+    c.glPushMatrix();
+    c.glTranslatef(300.0, 0.0, 0.0);
+    genexp.triangle.draw();
+    c.glPopMatrix();
 }
