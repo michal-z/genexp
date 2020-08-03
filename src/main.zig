@@ -4,7 +4,7 @@ const panic = std.debug.panic;
 const warn = std.debug.warn;
 const assert = std.debug.assert;
 const c = @import("c.zig");
-const genexp = @import("genexp002.zig");
+const genexp = @import("genexp003.zig");
 
 fn errorCallback(err: c_int, description: [*c]const u8) callconv(.C) void {
     panic("Error: {}\n", .{@as([*:0]const u8, description)});
@@ -133,10 +133,11 @@ pub fn main() !void {
     c.glNamedFramebufferTexture(fbo, c.GL_COLOR_ATTACHMENT0, fbo_texture, 0);
     c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
     c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
-    c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
 
-    var genexp_state = genexp.GenerativeExperimentState{};
-    try genexp.init(&genexp_state);
+    var genexp_state = genexp.GenerativeExperimentState.init();
+    try genexp.setup(&genexp_state);
+
+    c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
@@ -163,7 +164,7 @@ pub fn main() !void {
         c.glfwPollEvents();
     }
 
-    genexp.deinit(&genexp_state);
+    genexp_state.deinit();
     c.glDeleteFramebuffers(1, &fbo);
     c.glDeleteTextures(1, &fbo_texture);
 }

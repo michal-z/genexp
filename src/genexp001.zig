@@ -9,13 +9,20 @@ pub const window_width = 1920;
 pub const window_height = 1080;
 
 pub const GenerativeExperimentState = struct {
-    prng: std.rand.DefaultPrng = undefined,
-    position: Vec2 = .{ .x = 0.0, .y = 0.0 },
+    prng: std.rand.DefaultPrng,
+    position: Vec2,
+
+    pub fn init() GenerativeExperimentState {
+        return GenerativeExperimentState{
+            .prng = std.rand.DefaultPrng.init(0),
+            .position = Vec2{ .x = 0.0, .y = 0.0 },
+        };
+    }
+
+    pub fn deinit(self: GenerativeExperimentState) void {}
 };
 
-pub fn init(genexp: *GenerativeExperimentState) !void {
-    genexp.prng = std.rand.DefaultPrng.init(0);
-
+pub fn setup(genexp: *GenerativeExperimentState) !void {
     c.glPointSize(7.0);
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_ONE, c.GL_ONE);
@@ -67,5 +74,3 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     c.glVertex2f(position.x, position.y);
     c.glEnd();
 }
-
-pub fn deinit(genexp: *GenerativeExperimentState) void {}
