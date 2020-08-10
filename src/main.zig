@@ -3,6 +3,7 @@ const std = @import("std");
 const panic = std.debug.panic;
 const warn = std.debug.warn;
 const assert = std.debug.assert;
+const os = std.os;
 const c = @import("c.zig");
 const genexp = @import("genexp003.zig");
 
@@ -24,7 +25,7 @@ fn graphicsErrorCallback(
     }
 }
 
-fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
+fn updateFrameStats(window: os.windows.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
     const state = struct {
         var timer: std.time.Timer = undefined;
         var previous_time_ns: u64 = 0;
@@ -57,7 +58,7 @@ fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f
             .{ fps, ms, name },
         ) catch buffer_slice;
 
-        c.glfwSetWindowTitle(window, header.ptr);
+        _ = SetWindowTextA(window, @ptrCast(os.windows.LPCSTR, header.ptr));
 
         state.header_refresh_time_ns = now_ns;
         state.frame_count = 0;
@@ -67,7 +68,7 @@ fn updateFrameStats(window: *c.GLFWwindow, name: [*:0]const u8) struct { time: f
     return .{ .time = time, .delta_time = delta_time };
 }
 
-pub fn main() !void {
+pub fn main_() !void {
     _ = c.glfwSetErrorCallback(errorCallback);
     if (c.glfwInit() == c.GLFW_FALSE) {
         panic("Failed to init GLFW.\n", .{});
@@ -167,4 +168,141 @@ pub fn main() !void {
     genexp_state.deinit();
     c.glDeleteFramebuffers(1, &fbo);
     c.glDeleteTextures(1, &fbo_texture);
+}
+
+pub const WS_VISIBLE = 0x10000000;
+pub const VK_ESCAPE = 0x001B;
+
+pub const RECT = extern struct {
+    left: os.windows.LONG,
+    top: os.windows.LONG,
+    right: os.windows.LONG,
+    bottom: os.windows.LONG,
+};
+
+pub extern "kernel32" fn AdjustWindowRect(
+    lpRect: ?*RECT,
+    dwStyle: os.windows.DWORD,
+    bMenu: bool,
+) callconv(.Stdcall) bool;
+
+pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) bool;
+
+pub extern "user32" fn SetWindowTextA(
+    hWnd: os.windows.HWND,
+    lpString: os.windows.LPCSTR,
+) callconv(.Stdcall) bool;
+
+pub const WglCreateContext = fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC;
+pub const WglMakeCurrent = fn (?os.windows.HDC, ?os.windows.HGLRC) callconv(.Stdcall) bool;
+BOOL wglDeleteContext(
+  HGLRC Arg1
+);
+PROC wglGetProcAddress(
+  LPCSTR Arg1
+);
+
+var wglCreateContext: WglCreateContext = undefined;
+var wglMakeCurrent: WglMakeCurrent = undefined;
+
+fn processWindowMessage(
+    window: os.windows.HWND,
+    message: os.windows.UINT,
+    wparam: os.windows.WPARAM,
+    lparam: os.windows.LPARAM,
+) callconv(.Stdcall) os.windows.LRESULT {
+    const processed = switch (message) {
+        os.windows.user32.WM_DESTROY => blk: {
+            os.windows.user32.PostQuitMessage(0);
+            break :blk true;
+        },
+        os.windows.user32.WM_KEYDOWN => blk: {
+            if (wparam == VK_ESCAPE) {
+                os.windows.user32.PostQuitMessage(0);
+                break :blk true;
+            }
+            break :blk false;
+        },
+        else => false,
+    };
+    return if (processed) null else os.windows.user32.DefWindowProcA(window, message, wparam, lparam);
+}
+
+pub fn main() !void {
+    _ = SetProcessDPIAware();
+
+    const winclass = os.windows.user32.WNDCLASSEXA{
+        .style = 0,
+        .lpfnWndProc = processWindowMessage,
+        .cbClsExtra = 0,
+        .cbWndExtra = 0,
+        .hInstance = @ptrCast(os.windows.HINSTANCE, os.windows.kernel32.GetModuleHandleA(null)),
+        .hIcon = null,
+        .hCursor = null,
+        .hbrBackground = null,
+        .lpszMenuName = null,
+        .lpszClassName = "genexp",
+        .hIconSm = null,
+    };
+    _ = os.windows.user32.RegisterClassExA(&winclass);
+
+    const style = os.windows.user32.WS_OVERLAPPED +
+        os.windows.user32.WS_SYSMENU +
+        os.windows.user32.WS_CAPTION +
+        os.windows.user32.WS_MINIMIZEBOX;
+
+    var rect = RECT{ .left = 0, .top = 0, .right = 1920, .bottom = 1080 };
+    _ = AdjustWindowRect(&rect, style, false);
+
+    const window = os.windows.user32.CreateWindowExA(
+        0,
+        "genexp",
+        "genexp",
+        style + WS_VISIBLE,
+        -1,
+        -1,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        null,
+        null,
+        winclass.hInstance,
+        null,
+    );
+
+    var pfd = std.mem.zeroes(os.windows.gdi32.PIXELFORMATDESCRIPTOR);
+    pfd.nSize = @sizeOf(os.windows.gdi32.PIXELFORMATDESCRIPTOR);
+    pfd.nVersion = 1;
+    pfd.dwFlags = os.windows.user32.PFD_SUPPORT_OPENGL +
+        os.windows.user32.PFD_DOUBLEBUFFER +
+        os.windows.user32.PFD_DRAW_TO_WINDOW;
+    pfd.iPixelType = os.windows.user32.PFD_TYPE_RGBA;
+    pfd.cColorBits = 32;
+    pfd.cDepthBits = 24;
+    pfd.cStencilBits = 8;
+    const hdc = os.windows.user32.GetDC(window);
+    const pixel_format = os.windows.gdi32.ChoosePixelFormat(hdc, &pfd);
+    if (!os.windows.gdi32.SetPixelFormat(hdc, pixel_format, &pfd)) {
+        panic("SetPixelFormat failed.", .{});
+    }
+
+    var opengl_lib = try std.DynLib.open("C:/windows/system32/opengl32.dll");
+    wglCreateContext = opengl_lib.lookup(WglCreateContext, "wglCreateContext").?;
+    wglMakeCurrent = opengl_lib.lookup(WglMakeCurrent, "wglMakeCurrent").?;
+
+    const opengl_context = wglCreateContext(hdc);
+    if (!wglMakeCurrent(hdc, opengl_context)) {
+        panic("Failed to create OpenGL context.", .{});
+    }
+
+    while (true) {
+        var message = std.mem.zeroes(os.windows.user32.MSG);
+        if (os.windows.user32.PeekMessageA(&message, null, 0, 0, os.windows.user32.PM_REMOVE)) {
+            _ = os.windows.user32.DispatchMessageA(&message);
+            if (message.message == os.windows.user32.WM_QUIT)
+                break;
+        } else {
+            const stats = updateFrameStats(window.?, genexp.window_name);
+            _ = os.windows.gdi32.SwapBuffers(hdc);
+        }
+    }
 }
