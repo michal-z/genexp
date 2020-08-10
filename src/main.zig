@@ -1,30 +1,9 @@
-const builtin = @import("builtin");
 const std = @import("std");
 const panic = std.debug.panic;
-const warn = std.debug.warn;
 const assert = std.debug.assert;
 const os = std.os;
-const c = @import("c.zig");
 const gl = @import("opengl.zig");
-const genexp = @import("genexp003.zig");
-
-fn errorCallback(err: c_int, description: [*c]const u8) callconv(.C) void {
-    panic("Error: {}\n", .{@as([*:0]const u8, description)});
-}
-
-fn graphicsErrorCallback(
-    source: c.GLenum,
-    stype: c.GLenum,
-    id: c.GLuint,
-    severity: c.GLenum,
-    length: c.GLsizei,
-    message: [*c]const u8,
-    param: ?*const c_void,
-) callconv(.C) void {
-    if (message != null) {
-        warn("{}\n", .{@as([*:0]const u8, message)});
-    }
-}
+const genexp = @import("genexp001.zig");
 
 fn updateFrameStats(window: os.windows.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
     const state = struct {
@@ -69,127 +48,25 @@ fn updateFrameStats(window: os.windows.HWND, name: [*:0]const u8) struct { time:
     return .{ .time = time, .delta_time = delta_time };
 }
 
-pub fn main_() !void {
-    _ = c.glfwSetErrorCallback(errorCallback);
-    if (c.glfwInit() == c.GLFW_FALSE) {
-        panic("Failed to init GLFW.\n", .{});
-    }
-    defer c.glfwTerminate();
+const WS_VISIBLE = 0x10000000;
+const VK_ESCAPE = 0x001B;
 
-    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 4);
-    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 6);
-    c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_COMPAT_PROFILE);
-    if (comptime builtin.mode == builtin.Mode.Debug) {
-        c.glfwWindowHint(c.GLFW_OPENGL_DEBUG_CONTEXT, c.GLFW_TRUE);
-    }
-    c.glfwWindowHint(c.GLFW_DEPTH_BITS, 24);
-    c.glfwWindowHint(c.GLFW_STENCIL_BITS, 8);
-    c.glfwWindowHint(c.GLFW_RESIZABLE, c.GLFW_FALSE);
-
-    const window: *c.GLFWwindow = c.glfwCreateWindow(
-        genexp.window_width,
-        genexp.window_height,
-        genexp.window_name,
-        null,
-        null,
-    ) orelse {
-        panic("Failed to create window.\n", .{});
-    };
-    defer c.glfwDestroyWindow(window);
-
-    c.glfwMakeContextCurrent(window);
-    c.glfwSwapInterval(1);
-    c.loadGraphicsEntryPoints();
-
-    if (comptime builtin.mode == builtin.Mode.Debug) {
-        c.glDebugMessageCallback(graphicsErrorCallback, null);
-        c.glEnable(c.GL_DEBUG_OUTPUT);
-    }
-
-    c.glMatrixLoadIdentityEXT(c.GL_PROJECTION);
-    c.glMatrixOrthoEXT(
-        c.GL_PROJECTION,
-        -genexp.window_width * 0.5,
-        genexp.window_width * 0.5,
-        -genexp.window_height * 0.5,
-        genexp.window_height * 0.5,
-        -1.0,
-        1.0,
-    );
-    c.glEnable(c.GL_FRAMEBUFFER_SRGB);
-    c.glEnable(c.GL_MULTISAMPLE);
-
-    var fbo_texture: c.GLuint = undefined;
-    c.glCreateTextures(c.GL_TEXTURE_2D_MULTISAMPLE, 1, &fbo_texture);
-    c.glTextureStorage2DMultisample(
-        fbo_texture,
-        8,
-        c.GL_SRGB8_ALPHA8,
-        genexp.window_width,
-        genexp.window_height,
-        c.GL_FALSE,
-    );
-
-    var fbo: c.GLuint = undefined;
-    c.glCreateFramebuffers(1, &fbo);
-    c.glNamedFramebufferTexture(fbo, c.GL_COLOR_ATTACHMENT0, fbo_texture, 0);
-    c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
-    c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
-
-    var genexp_state = genexp.GenerativeExperimentState.init();
-    try genexp.setup(&genexp_state);
-
-    c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
-
-    while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
-        c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, fbo);
-
-        const stats = updateFrameStats(window, genexp.window_name);
-        genexp.update(&genexp_state, stats.time, stats.delta_time);
-
-        c.glBindFramebuffer(c.GL_DRAW_FRAMEBUFFER, 0);
-        c.glBlitNamedFramebuffer(
-            fbo,
-            0,
-            0,
-            0,
-            genexp.window_width,
-            genexp.window_height,
-            0,
-            0,
-            genexp.window_width,
-            genexp.window_height,
-            c.GL_COLOR_BUFFER_BIT,
-            c.GL_NEAREST,
-        );
-        c.glfwSwapBuffers(window);
-        c.glfwPollEvents();
-    }
-
-    genexp_state.deinit();
-    c.glDeleteFramebuffers(1, &fbo);
-    c.glDeleteTextures(1, &fbo_texture);
-}
-
-pub const WS_VISIBLE = 0x10000000;
-pub const VK_ESCAPE = 0x001B;
-
-pub const RECT = extern struct {
+const RECT = extern struct {
     left: os.windows.LONG,
     top: os.windows.LONG,
     right: os.windows.LONG,
     bottom: os.windows.LONG,
 };
 
-pub extern "kernel32" fn AdjustWindowRect(
+extern "kernel32" fn AdjustWindowRect(
     lpRect: ?*RECT,
     dwStyle: os.windows.DWORD,
     bMenu: bool,
 ) callconv(.Stdcall) bool;
 
-pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) bool;
+extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) bool;
 
-pub extern "user32" fn SetWindowTextA(
+extern "user32" fn SetWindowTextA(
     hWnd: os.windows.HWND,
     lpString: os.windows.LPCSTR,
 ) callconv(.Stdcall) bool;
@@ -258,17 +135,40 @@ pub fn main() !void {
         null,
     );
     gl.init(window);
+    gl.matrixLoadIdentityEXT(gl.PROJECTION);
+    gl.matrixOrthoEXT(
+        gl.PROJECTION,
+        -genexp.window_width * 0.5,
+        genexp.window_width * 0.5,
+        -genexp.window_height * 0.5,
+        genexp.window_height * 0.5,
+        -1.0,
+        1.0,
+    );
     gl.enable(gl.FRAMEBUFFER_SRGB);
     gl.enable(gl.MULTISAMPLE);
 
+    var fbo_texture: gl.Uint = undefined;
+    gl.createTextures(gl.TEXTURE_2D_MULTISAMPLE, 1, &fbo_texture);
     gl.textureStorage2DMultisample(
-        1,
+        fbo_texture,
         8,
         gl.SRGB8_ALPHA8,
         genexp.window_width,
         genexp.window_height,
         gl.FALSE,
     );
+
+    var fbo: gl.Uint = undefined;
+    gl.createFramebuffers(1, &fbo);
+    gl.namedFramebufferTexture(fbo, gl.COLOR_ATTACHMENT0, fbo_texture, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
+
+    //var genexp_state = genexp.GenerativeExperimentState.init();
+    //try genexp.setup(&genexp_state);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
 
     while (true) {
         var message = std.mem.zeroes(os.windows.user32.MSG);
@@ -277,9 +177,35 @@ pub fn main() !void {
             if (message.message == os.windows.user32.WM_QUIT)
                 break;
         } else {
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+
             const stats = updateFrameStats(window.?, genexp.window_name);
-            gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.2, 0.4, 0.8, 1.0 });
+            //genexp.update(&genexp_state, stats.time, stats.delta_time);
+
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
+            gl.blitNamedFramebuffer(
+                fbo,
+                0,
+                0,
+                0,
+                genexp.window_width,
+                genexp.window_height,
+                0,
+                0,
+                genexp.window_width,
+                genexp.window_height,
+                gl.COLOR_BUFFER_BIT,
+                gl.NEAREST,
+            );
             gl.swapBuffers();
+
+            if (gl.getError() != 0) {
+                panic("OpenGL error detected.", .{});
+            }
         }
     }
+
+    gl.deleteTextures(1, &fbo_texture);
+    gl.deleteFramebuffers(1, &fbo);
+    gl.deinit();
 }

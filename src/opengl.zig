@@ -1,6 +1,7 @@
 const std = @import("std");
 const os = std.os;
 const panic = std.debug.panic;
+const assert = std.debug.assert;
 
 pub const Enum = c_uint;
 pub const Uint = c_uint;
@@ -22,16 +23,21 @@ pub const SRGB8_ALPHA8 = 0x8C43;
 pub const TRUE = 1;
 pub const FALSE = 0;
 pub const DRAW_FRAMEBUFFER = 0x8CA9;
+pub const COLOR_BUFFER_BIT = 0x00004000;
+pub const NEAREST = 0x2600;
+pub const LINEAR = 0x2601;
 
 const WCreateContext = fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC;
 const WMakeCurrent = fn (?os.windows.HDC, ?os.windows.HGLRC) callconv(.Stdcall) bool;
 const WDeleteContext = fn (?os.windows.HGLRC) callconv(.Stdcall) bool;
 const WGetProcAddress = fn (os.windows.LPCSTR) callconv(.Stdcall) ?os.windows.FARPROC;
+const WSwapIntervalEXT = fn (i32) callconv(.Stdcall) bool;
 
 var wCreateContext: WCreateContext = undefined;
 var wDeleteContext: WDeleteContext = undefined;
 var wMakeCurrent: WMakeCurrent = undefined;
 var wGetProcAddress: WGetProcAddress = undefined;
+var wSwapIntervalEXT: WSwapIntervalEXT = undefined;
 
 const ClearBufferfv = fn (Enum, Int, [*c]const Float) callconv(.Stdcall) void;
 const MatrixLoadIdentityEXT = fn (Enum) callconv(.Stdcall) void;
@@ -39,12 +45,15 @@ const MatrixOrthoEXT = fn (Enum, Double, Double, Double, Double, Double, Double)
 const Enable = fn (Enum) callconv(.Stdcall) void;
 const TextureStorage2DMultisample = fn (Uint, Sizei, Enum, Sizei, Sizei, Boolean) callconv(.Stdcall) void;
 const CreateTextures = fn (Enum, Sizei, [*c]Uint) callconv(.Stdcall) void;
+const DeleteTextures = fn (Sizei, [*c]Uint) callconv(.Stdcall) void;
 const CreateFramebuffers = fn (Sizei, [*c]Uint) callconv(.Stdcall) void;
+const DeleteFramebuffers = fn (Sizei, [*c]Uint) callconv(.Stdcall) void;
 const NamedFramebufferTexture = fn (Uint, Enum, Uint, Int) callconv(.Stdcall) void;
 const BlitNamedFramebuffer = fn (Uint, Uint, Int, Int, Int, Int, Int, Int, Int, Int, Bitfield, Enum) callconv(.Stdcall) void;
 const BindFramebuffer = fn (Enum, Uint) callconv(.Stdcall) void;
 const Begin = fn (Enum) callconv(.Stdcall) void;
 const End = fn () callconv(.Stdcall) void;
+const GetError = fn () callconv(.Stdcall) Enum;
 
 pub var clearBufferfv: ClearBufferfv = undefined;
 pub var matrixLoadIdentityEXT: MatrixLoadIdentityEXT = undefined;
@@ -52,17 +61,23 @@ pub var matrixOrthoEXT: MatrixOrthoEXT = undefined;
 pub var enable: Enable = undefined;
 pub var textureStorage2DMultisample: TextureStorage2DMultisample = undefined;
 pub var createTextures: CreateTextures = undefined;
+pub var deleteTextures: DeleteTextures = undefined;
 pub var createFramebuffers: CreateFramebuffers = undefined;
+pub var deleteFramebuffers: DeleteFramebuffers = undefined;
 pub var namedFramebufferTexture: NamedFramebufferTexture = undefined;
 pub var blitNamedFramebuffer: BlitNamedFramebuffer = undefined;
 pub var bindFramebuffer: BindFramebuffer = undefined;
 pub var begin: Begin = undefined;
 pub var end: End = undefined;
+pub var getError: GetError = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
+var opengl_context: ?os.windows.HGLRC = null;
 var hdc: ?os.windows.HDC = null;
 
 pub fn init(window: ?os.windows.HWND) void {
+    assert(window != null and opengl_context == null);
+
     hdc = os.windows.user32.GetDC(window);
 
     var pfd = std.mem.zeroes(os.windows.gdi32.PIXELFORMATDESCRIPTOR);
@@ -86,10 +101,13 @@ pub fn init(window: ?os.windows.HWND) void {
     wMakeCurrent = opengl32_dll.lookup(WMakeCurrent, "wglMakeCurrent").?;
     wGetProcAddress = opengl32_dll.lookup(WGetProcAddress, "wglGetProcAddress").?;
 
-    const opengl_context = wCreateContext(hdc);
+    opengl_context = wCreateContext(hdc);
     if (!wMakeCurrent(hdc, opengl_context)) {
         panic("Failed to create OpenGL context.", .{});
     }
+
+    wSwapIntervalEXT = getProcAddress(WSwapIntervalEXT, "wglSwapIntervalEXT").?;
+    _ = wSwapIntervalEXT(0);
 
     clearBufferfv = getProcAddress(ClearBufferfv, "glClearBufferfv").?;
     matrixLoadIdentityEXT = getProcAddress(MatrixLoadIdentityEXT, "glMatrixLoadIdentityEXT").?;
@@ -97,15 +115,26 @@ pub fn init(window: ?os.windows.HWND) void {
     enable = getProcAddress(Enable, "glEnable").?;
     textureStorage2DMultisample = getProcAddress(TextureStorage2DMultisample, "glTextureStorage2DMultisample").?;
     createTextures = getProcAddress(CreateTextures, "glCreateTextures").?;
+    deleteTextures = getProcAddress(DeleteTextures, "glDeleteTextures").?;
     createFramebuffers = getProcAddress(CreateFramebuffers, "glCreateFramebuffers").?;
+    deleteFramebuffers = getProcAddress(DeleteFramebuffers, "glDeleteFramebuffers").?;
     namedFramebufferTexture = getProcAddress(NamedFramebufferTexture, "glNamedFramebufferTexture").?;
     blitNamedFramebuffer = getProcAddress(BlitNamedFramebuffer, "glBlitNamedFramebuffer").?;
     bindFramebuffer = getProcAddress(BindFramebuffer, "glBindFramebuffer").?;
     begin = getProcAddress(Begin, "glBegin").?;
     end = getProcAddress(End, "glEnd").?;
+    getError = getProcAddress(GetError, "glGetError").?;
+}
+
+pub fn deinit() void {
+    assert(hdc != null and opengl_context != null);
+    _ = wMakeCurrent(null, null);
+    _ = wDeleteContext(opengl_context);
+    opengl_context = null;
 }
 
 pub fn swapBuffers() void {
+    assert(hdc != null and opengl_context != null);
     _ = os.windows.gdi32.SwapBuffers(hdc);
 }
 
