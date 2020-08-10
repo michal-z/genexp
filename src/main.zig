@@ -5,6 +5,7 @@ const warn = std.debug.warn;
 const assert = std.debug.assert;
 const os = std.os;
 const c = @import("c.zig");
+const gl = @import("opengl.zig");
 const genexp = @import("genexp003.zig");
 
 fn errorCallback(err: c_int, description: [*c]const u8) callconv(.C) void {
@@ -193,18 +194,6 @@ pub extern "user32" fn SetWindowTextA(
     lpString: os.windows.LPCSTR,
 ) callconv(.Stdcall) bool;
 
-pub const WglCreateContext = fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC;
-pub const WglMakeCurrent = fn (?os.windows.HDC, ?os.windows.HGLRC) callconv(.Stdcall) bool;
-BOOL wglDeleteContext(
-  HGLRC Arg1
-);
-PROC wglGetProcAddress(
-  LPCSTR Arg1
-);
-
-var wglCreateContext: WglCreateContext = undefined;
-var wglMakeCurrent: WglMakeCurrent = undefined;
-
 fn processWindowMessage(
     window: os.windows.HWND,
     message: os.windows.UINT,
@@ -268,31 +257,18 @@ pub fn main() !void {
         winclass.hInstance,
         null,
     );
+    gl.init(window);
+    gl.enable(gl.FRAMEBUFFER_SRGB);
+    gl.enable(gl.MULTISAMPLE);
 
-    var pfd = std.mem.zeroes(os.windows.gdi32.PIXELFORMATDESCRIPTOR);
-    pfd.nSize = @sizeOf(os.windows.gdi32.PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = os.windows.user32.PFD_SUPPORT_OPENGL +
-        os.windows.user32.PFD_DOUBLEBUFFER +
-        os.windows.user32.PFD_DRAW_TO_WINDOW;
-    pfd.iPixelType = os.windows.user32.PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
-    pfd.cDepthBits = 24;
-    pfd.cStencilBits = 8;
-    const hdc = os.windows.user32.GetDC(window);
-    const pixel_format = os.windows.gdi32.ChoosePixelFormat(hdc, &pfd);
-    if (!os.windows.gdi32.SetPixelFormat(hdc, pixel_format, &pfd)) {
-        panic("SetPixelFormat failed.", .{});
-    }
-
-    var opengl_lib = try std.DynLib.open("C:/windows/system32/opengl32.dll");
-    wglCreateContext = opengl_lib.lookup(WglCreateContext, "wglCreateContext").?;
-    wglMakeCurrent = opengl_lib.lookup(WglMakeCurrent, "wglMakeCurrent").?;
-
-    const opengl_context = wglCreateContext(hdc);
-    if (!wglMakeCurrent(hdc, opengl_context)) {
-        panic("Failed to create OpenGL context.", .{});
-    }
+    gl.textureStorage2DMultisample(
+        1,
+        8,
+        gl.SRGB8_ALPHA8,
+        genexp.window_width,
+        genexp.window_height,
+        gl.FALSE,
+    );
 
     while (true) {
         var message = std.mem.zeroes(os.windows.user32.MSG);
@@ -302,7 +278,8 @@ pub fn main() !void {
                 break;
         } else {
             const stats = updateFrameStats(window.?, genexp.window_name);
-            _ = os.windows.gdi32.SwapBuffers(hdc);
+            gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.2, 0.4, 0.8, 1.0 });
+            gl.swapBuffers();
         }
     }
 }
