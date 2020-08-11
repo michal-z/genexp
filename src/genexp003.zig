@@ -1,8 +1,7 @@
-const builtin = @import("builtin");
 const std = @import("std");
-const c = @import("c.zig");
+const gl = @import("opengl.zig");
 const math = std.math;
-const default_allocator = std.heap.c_allocator;
+const default_allocator = std.heap.page_allocator;
 const ArrayList = std.ArrayList;
 usingnamespace @import("util.zig");
 
@@ -56,15 +55,15 @@ const SandShape = struct {
     }
 
     fn draw(self: SandShape) void {
-        c.glBegin(c.GL_LINES);
+        gl.begin(gl.LINES);
         for (self.points.items) |point, point_index| {
             for (point.p) |p0, i| {
                 const p1 = &self.points.items[(point_index + 1) % self.points.items.len].p[i];
-                c.glVertex2f(p0.x, p0.y);
-                c.glVertex2f(p1.x, p1.y);
+                gl.vertex2f(p0.x, p0.y);
+                gl.vertex2f(p1.x, p1.y);
             }
         }
-        c.glEnd();
+        gl.end();
     }
 };
 
@@ -80,21 +79,21 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     try genexp.triangle.points.append(SandPoint.init(-100.0, -100.0, rand));
     try genexp.triangle.points.append(SandPoint.init(100.0, -100.0, rand));
 
-    c.glEnable(c.GL_BLEND);
-    c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
 
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
-    c.glClearBufferfv(c.GL_COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
-    c.glColor4f(0.0, 0.0, 0.0, 0.5);
+    gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
+    gl.color4f(0.0, 0.0, 0.0, 0.5);
 
-    c.glPushMatrix();
-    c.glTranslatef(-300.0, 0.0, 0.0);
+    gl.pushMatrix();
+    gl.translatef(-300.0, 0.0, 0.0);
     genexp.square.draw();
-    c.glPopMatrix();
+    gl.popMatrix();
 
-    c.glPushMatrix();
-    c.glTranslatef(300.0, 0.0, 0.0);
+    gl.pushMatrix();
+    gl.translatef(300.0, 0.0, 0.0);
     genexp.triangle.draw();
-    c.glPopMatrix();
+    gl.popMatrix();
 }

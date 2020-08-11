@@ -12,6 +12,7 @@ pub const Double = f64;
 pub const Char = u8;
 pub const Boolean = u8;
 pub const Bitfield = c_uint;
+pub const Ubyte = u8;
 
 pub const COLOR = 0x1800;
 pub const COLOR_ATTACHMENT0 = 0x8CE0;
@@ -39,6 +40,14 @@ pub const QUAD_STRIP = 0x0008;
 pub const POLYGON = 0x0009;
 pub const ZERO = 0;
 pub const ONE = 1;
+pub const SRC_COLOR = 0x0300;
+pub const ONE_MINUS_SRC_COLOR = 0x0301;
+pub const SRC_ALPHA = 0x0302;
+pub const ONE_MINUS_SRC_ALPHA = 0x0303;
+pub const DST_ALPHA = 0x0304;
+pub const ONE_MINUS_DST_ALPHA = 0x0305;
+pub const DST_COLOR = 0x0306;
+pub const ONE_MINUS_DST_COLOR = 0x0307;
 
 const WCreateContext = fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC;
 const WMakeCurrent = fn (?os.windows.HDC, ?os.windows.HGLRC) callconv(.Stdcall) bool;
@@ -68,9 +77,17 @@ const Begin = fn (Enum) callconv(.Stdcall) void;
 const End = fn () callconv(.Stdcall) void;
 const GetError = fn () callconv(.Stdcall) Enum;
 const PointSize = fn (Float) callconv(.Stdcall) void;
+const LineWidth = fn (Float) callconv(.Stdcall) void;
 const BlendFunc = fn (Enum, Enum) callconv(.Stdcall) void;
 const Vertex2f = fn (Float, Float) callconv(.Stdcall) void;
+const Vertex2i = fn (Int, Int) callconv(.Stdcall) void;
 const Color4f = fn (Float, Float, Float, Float) callconv(.Stdcall) void;
+const Color4ub = fn (Ubyte, Ubyte, Ubyte, Ubyte) callconv(.Stdcall) void;
+const PushMatrix = fn () callconv(.Stdcall) void;
+const PopMatrix = fn () callconv(.Stdcall) void;
+const Rotatef = fn (Float, Float, Float, Float) callconv(.Stdcall) void;
+const Scalef = fn (Float, Float, Float) callconv(.Stdcall) void;
+const Translatef = fn (Float, Float, Float) callconv(.Stdcall) void;
 
 pub var clearBufferfv: ClearBufferfv = undefined;
 pub var matrixLoadIdentityEXT: MatrixLoadIdentityEXT = undefined;
@@ -88,9 +105,17 @@ pub var begin: Begin = undefined;
 pub var end: End = undefined;
 pub var getError: GetError = undefined;
 pub var pointSize: PointSize = undefined;
+pub var lineWidth: LineWidth = undefined;
 pub var blendFunc: BlendFunc = undefined;
 pub var vertex2f: Vertex2f = undefined;
+pub var vertex2i: Vertex2i = undefined;
 pub var color4f: Color4f = undefined;
+pub var color4ub: Color4ub = undefined;
+pub var pushMatrix: PushMatrix = undefined;
+pub var popMatrix: PopMatrix = undefined;
+pub var rotatef: Rotatef = undefined;
+pub var scalef: Scalef = undefined;
+pub var translatef: Translatef = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
 var opengl_context: ?os.windows.HGLRC = null;
@@ -146,9 +171,17 @@ pub fn init(window: ?os.windows.HWND) void {
     end = getProcAddress(End, "glEnd").?;
     getError = getProcAddress(GetError, "glGetError").?;
     pointSize = getProcAddress(PointSize, "glPointSize").?;
+    lineWidth = getProcAddress(LineWidth, "glLineWidth").?;
     blendFunc = getProcAddress(BlendFunc, "glBlendFunc").?;
     vertex2f = getProcAddress(Vertex2f, "glVertex2f").?;
+    vertex2i = getProcAddress(Vertex2i, "glVertex2i").?;
     color4f = getProcAddress(Color4f, "glColor4f").?;
+    color4ub = getProcAddress(Color4ub, "glColor4ub").?;
+    pushMatrix = getProcAddress(PushMatrix, "glPushMatrix").?;
+    popMatrix = getProcAddress(PopMatrix, "glPopMatrix").?;
+    rotatef = getProcAddress(Rotatef, "glRotatef").?;
+    scalef = getProcAddress(Scalef, "glScalef").?;
+    translatef = getProcAddress(Translatef, "glTranslatef").?;
 }
 
 pub fn deinit() void {

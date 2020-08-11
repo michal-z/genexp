@@ -1,8 +1,7 @@
-const builtin = @import("builtin");
 const std = @import("std");
-const c = @import("c.zig");
+const gl = @import("opengl.zig");
 const math = std.math;
-const default_allocator = std.heap.c_allocator;
+const default_allocator = std.heap.page_allocator;
 usingnamespace @import("util.zig");
 
 pub const window_name = "genexp002";
@@ -40,9 +39,9 @@ pub const GenerativeExperimentState = struct {
 pub fn setup(genexp: *GenerativeExperimentState) !void {
     const rand = &genexp.prng.random;
 
-    c.glLineWidth(5.0);
-    c.glEnable(c.GL_BLEND);
-    c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
+    gl.lineWidth(5.0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     genexp.positions = try default_allocator.alloc(Vec2, num_objects);
     genexp.colors = try default_allocator.alloc(Color, num_objects);
@@ -90,28 +89,28 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         }
     }
 
-    c.glColor4f(0.0, 0.0, 0.0, 0.1);
-    c.glBegin(c.GL_QUADS);
-    c.glVertex2i(-window_width / 2, -window_height / 2);
-    c.glVertex2i(window_width / 2, -window_height / 2);
-    c.glVertex2i(window_width / 2, window_height / 2);
-    c.glVertex2i(-window_width / 2, window_height / 2);
-    c.glEnd();
+    gl.color4f(0.0, 0.0, 0.0, 0.1);
+    gl.begin(gl.QUADS);
+    gl.vertex2i(-window_width / 2, -window_height / 2);
+    gl.vertex2i(window_width / 2, -window_height / 2);
+    gl.vertex2i(window_width / 2, window_height / 2);
+    gl.vertex2i(-window_width / 2, window_height / 2);
+    gl.end();
 
-    c.glBegin(c.GL_LINES);
+    gl.begin(gl.LINES);
     for (genexp.velocities) |*vel, i| {
         vel.*.x += genexp.accelerations[i].x;
         vel.*.y += genexp.accelerations[i].y;
         vel.*.x = if (vel.*.x < -max_vel) -max_vel else if (vel.*.x > max_vel) max_vel else vel.*.x;
         vel.*.y = if (vel.*.y < -max_vel) -max_vel else if (vel.*.y > max_vel) max_vel else vel.*.y;
 
-        c.glColor4ub(genexp.colors[i].r, genexp.colors[i].g, genexp.colors[i].b, 200);
-        c.glVertex2f(genexp.positions[i].x, genexp.positions[i].y);
+        gl.color4ub(genexp.colors[i].r, genexp.colors[i].g, genexp.colors[i].b, 200);
+        gl.vertex2f(genexp.positions[i].x, genexp.positions[i].y);
 
         genexp.positions[i].x += vel.*.x;
         genexp.positions[i].y += vel.*.y;
 
-        c.glVertex2f(genexp.positions[i].x, genexp.positions[i].y);
+        gl.vertex2f(genexp.positions[i].x, genexp.positions[i].y);
     }
-    c.glEnd();
+    gl.end();
 }
