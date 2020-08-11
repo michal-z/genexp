@@ -165,8 +165,8 @@ pub fn main() !void {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
     gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
 
-    //var genexp_state = genexp.GenerativeExperimentState.init();
-    //try genexp.setup(&genexp_state);
+    var genexp_state = genexp.GenerativeExperimentState.init();
+    try genexp.setup(&genexp_state);
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
 
@@ -180,7 +180,7 @@ pub fn main() !void {
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
 
             const stats = updateFrameStats(window.?, genexp.window_name);
-            //genexp.update(&genexp_state, stats.time, stats.delta_time);
+            genexp.update(&genexp_state, stats.time, stats.delta_time);
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
             gl.blitNamedFramebuffer(
@@ -205,6 +205,7 @@ pub fn main() !void {
         }
     }
 
+    genexp_state.deinit();
     gl.deleteTextures(1, &fbo_texture);
     gl.deleteFramebuffers(1, &fbo);
     gl.deinit();

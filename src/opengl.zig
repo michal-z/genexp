@@ -67,10 +67,10 @@ const BindFramebuffer = fn (Enum, Uint) callconv(.Stdcall) void;
 const Begin = fn (Enum) callconv(.Stdcall) void;
 const End = fn () callconv(.Stdcall) void;
 const GetError = fn () callconv(.Stdcall) Enum;
-pub extern fn glPointSize(size: GLfloat) void;
-pub extern fn glBlendFunc(sfactor: GLenum, dfactor: GLenum) void;
-pub extern fn glVertex2f(x: GLfloat, y: GLfloat) void;
-pub extern fn glColor4f(red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) void;
+const PointSize = fn (Float) callconv(.Stdcall) void;
+const BlendFunc = fn (Enum, Enum) callconv(.Stdcall) void;
+const Vertex2f = fn (Float, Float) callconv(.Stdcall) void;
+const Color4f = fn (Float, Float, Float, Float) callconv(.Stdcall) void;
 
 pub var clearBufferfv: ClearBufferfv = undefined;
 pub var matrixLoadIdentityEXT: MatrixLoadIdentityEXT = undefined;
@@ -87,6 +87,10 @@ pub var bindFramebuffer: BindFramebuffer = undefined;
 pub var begin: Begin = undefined;
 pub var end: End = undefined;
 pub var getError: GetError = undefined;
+pub var pointSize: PointSize = undefined;
+pub var blendFunc: BlendFunc = undefined;
+pub var vertex2f: Vertex2f = undefined;
+pub var color4f: Color4f = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
 var opengl_context: ?os.windows.HGLRC = null;
@@ -124,7 +128,7 @@ pub fn init(window: ?os.windows.HWND) void {
     }
 
     wSwapIntervalEXT = getProcAddress(WSwapIntervalEXT, "wglSwapIntervalEXT").?;
-    _ = wSwapIntervalEXT(0);
+    _ = wSwapIntervalEXT(1);
 
     clearBufferfv = getProcAddress(ClearBufferfv, "glClearBufferfv").?;
     matrixLoadIdentityEXT = getProcAddress(MatrixLoadIdentityEXT, "glMatrixLoadIdentityEXT").?;
@@ -141,6 +145,10 @@ pub fn init(window: ?os.windows.HWND) void {
     begin = getProcAddress(Begin, "glBegin").?;
     end = getProcAddress(End, "glEnd").?;
     getError = getProcAddress(GetError, "glGetError").?;
+    pointSize = getProcAddress(PointSize, "glPointSize").?;
+    blendFunc = getProcAddress(BlendFunc, "glBlendFunc").?;
+    vertex2f = getProcAddress(Vertex2f, "glVertex2f").?;
+    color4f = getProcAddress(Color4f, "glColor4f").?;
 }
 
 pub fn deinit() void {
