@@ -3,6 +3,7 @@ const panic = std.debug.panic;
 const assert = std.debug.assert;
 const os = std.os;
 const gl = @import("opengl.zig");
+const d3d12 = @import("d3d12.zig");
 const genexp = @import("genexp003.zig");
 
 fn updateFrameStats(window: os.windows.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
@@ -96,6 +97,9 @@ fn processWindowMessage(
 
 pub fn main() !void {
     _ = SetProcessDPIAware();
+
+    var u: *d3d12.Blob = undefined;
+    _ = u.AddRef();
 
     const winclass = os.windows.user32.WNDCLASSEXA{
         .style = 0,
