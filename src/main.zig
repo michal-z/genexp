@@ -98,8 +98,8 @@ fn processWindowMessage(
 pub fn main() !void {
     _ = SetProcessDPIAware();
 
-    var u: *d3d12.Blob = undefined;
-    _ = u.AddRef();
+    //var u: *d3d12.Blob = undefined;
+    //_ = u.AddRef();
 
     const winclass = os.windows.user32.WNDCLASSEXA{
         .style = 0,
@@ -123,6 +123,8 @@ pub fn main() !void {
 
     var rect = RECT{ .left = 0, .top = 0, .right = 1920, .bottom = 1080 };
     _ = AdjustWindowRect(&rect, style, false);
+
+    d3d12.init();
 
     const window = os.windows.user32.CreateWindowExA(
         0,
