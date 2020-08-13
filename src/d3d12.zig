@@ -289,6 +289,28 @@ pub const RECT = extern struct {
     bottom: c_long,
 };
 
+pub const DISCARD_REGION = extern struct {
+    NumRects: u32,
+    pRects: *const RECT,
+    FirstSubresource: u32,
+    NumSubresources: u32,
+};
+
+pub const COMMAND_LIST_TYPE = extern enum {
+    DIRECT = 0,
+    BUNDLE = 1,
+    COMPUTE = 2,
+    COPY = 3,
+};
+
+pub const SUBRESOURCE_FOOTPRINT = extern struct {
+    Format: FORMAT,
+    Width: u32,
+    Height: u32,
+    Depth: u32,
+    RowPitch: u32,
+};
+
 const IUnknownVTable = extern struct {
     const Self = IUnknown;
     // IUnknown
