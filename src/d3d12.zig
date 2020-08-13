@@ -207,6 +207,88 @@ pub const RANGE = extern struct {
     End: u64,
 };
 
+pub const RESOURCE_DIMENSION = extern enum {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE2D = 3,
+    TEXTURE3D = 4,
+};
+
+pub const TEXTURE_LAYOUT = extern enum {
+    UNKNOWN = 0,
+    ROW_MAJOR = 1,
+    _64KB_UNDEFINED_SWIZZLE = 2,
+    _64KB_STANDARD_SWIZZLE = 3,
+};
+
+pub const RESOURCE_FLAGS = extern enum {
+    NONE = 0,
+    ALLOW_RENDER_TARGET = 0x1,
+    ALLOW_DEPTH_STENCIL = 0x2,
+    ALLOW_UNORDERED_ACCESS = 0x4,
+    DENY_SHADER_RESOURCE = 0x8,
+    ALLOW_CROSS_ADAPTER = 0x10,
+    ALLOW_SIMULTANEOUS_ACCESS = 0x20,
+};
+
+pub const RESOURCE_DESC = extern struct {
+    Dimension: RESOURCE_DIMENSION,
+    Alignment: u64,
+    Width: u64,
+    Height: u32,
+    DepthOrArraySize: u16,
+    MipLevels: u16,
+    Format: FORMAT,
+    SampleDesc: SAMPLE_DESC,
+    Layout: TEXTURE_LAYOUT,
+    Flags: RESOURCE_FLAGS,
+};
+
+pub const BOX = extern struct {
+    left: u32,
+    top: u32,
+    front: u32,
+    right: u32,
+    bottom: u32,
+    back: u32,
+};
+
+pub const DESCRIPTOR_HEAP_TYPE = extern enum {
+    CBV_SRV_UAV = 0,
+    SAMPLER = 1,
+    RTV = 2,
+    DSV = 3,
+    NUM_TYPES = 4,
+};
+
+pub const DESCRIPTOR_HEAP_FLAGS = extern enum {
+    NONE = 0,
+    SHADER_VISIBLE = 1,
+};
+
+pub const DESCRIPTOR_HEAP_DESC = extern struct {
+    Type: DESCRIPTOR_HEAP_TYPE,
+    NumDescriptors: u32,
+    Flags: DESCRIPTOR_HEAP_FLAGS,
+    NodeMask: u32,
+};
+
+pub const CPU_DESCRIPTOR_HANDLE = extern struct {
+    ptr: u64,
+};
+
+pub const GPU_DESCRIPTOR_HANDLE = extern struct {
+    ptr: u64,
+};
+
+pub const RECT = extern struct {
+    left: c_long,
+    top: c_long,
+    right: c_long,
+    bottom: c_long,
+};
+
 const IUnknownVTable = extern struct {
     const Self = IUnknown;
     // IUnknown
