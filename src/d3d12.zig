@@ -133,6 +133,13 @@ pub const FORMAT = extern enum {
     FORCE_UINT = 0xffffffff,
 };
 
+pub const SAMPLE_DESC = extern struct {
+    Count: u32,
+    Quality: u32,
+};
+
+pub const GPU_VIRTUAL_ADDRESS = u64;
+
 pub const FEATURE_LEVEL = extern enum {
     _9_1 = 0x9100,
     _9_2 = 0x9200,
@@ -143,6 +150,61 @@ pub const FEATURE_LEVEL = extern enum {
     _11_1 = 0xb100,
     _12_0 = 0xc000,
     _12_1 = 0xc100,
+};
+
+pub const HEAP_TYPE = extern enum {
+    DEFAULT = 1,
+    UPLOAD = 2,
+    READBACK = 3,
+    CUSTOM = 4,
+};
+
+pub const CPU_PAGE_PROPERTY = extern enum {
+    UNKNOWN = 0,
+    NOT_AVAILABLE = 1,
+    WRITE_COMBINE = 2,
+    WRITE_BACK = 3,
+};
+
+pub const MEMORY_POOL = extern enum {
+    UNKNOWN = 0,
+    L0 = 1,
+    L1 = 2,
+};
+
+pub const HEAP_PROPERTIES = extern struct {
+    Type: HEAP_TYPE,
+    CPUPageProperty: CPU_PAGE_PROPERTY,
+    MemoryPoolPreference: MEMORY_POOL,
+    CreationNodeMask: u32,
+    VisibleNodeMask: u32,
+};
+
+pub const HEAP_FLAGS = extern enum {
+    NONE = 0,
+    SHARED = 0x1,
+    DENY_BUFFERS = 0x4,
+    ALLOW_DISPLAY = 0x8,
+    SHARED_CROSS_ADAPTER = 0x20,
+    DENY_RT_DS_TEXTURES = 0x40,
+    DENY_NON_RT_DS_TEXTURES = 0x80,
+    HARDWARE_PROTECTED = 0x100,
+    ALLOW_ALL_BUFFERS_AND_TEXTURES = 0,
+    ALLOW_ONLY_BUFFERS = 0xc0,
+    ALLOW_ONLY_NON_RT_DS_TEXTURES = 0x44,
+    ALLOW_ONLY_RT_DS_TEXTURES = 0x84,
+};
+
+pub const HEAP_DESC = extern struct {
+    SizeInBytes: u64,
+    Properties: HEAP_PROPERTIES,
+    Alignment: u64,
+    Flags: HEAP_FLAGS,
+};
+
+pub const RANGE = extern struct {
+    Begin: u64,
+    End: u64,
 };
 
 const IUnknownVTable = extern struct {
