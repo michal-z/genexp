@@ -13,18 +13,21 @@ pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
     square: SandShape,
     triangle: SandShape,
+    circle: SandShape,
 
     pub fn init() GenerativeExperimentState {
         return GenerativeExperimentState{
             .prng = std.rand.DefaultPrng.init(0),
             .square = SandShape.init(default_allocator),
             .triangle = SandShape.init(default_allocator),
+            .circle = SandShape.init(default_allocator),
         };
     }
 
     pub fn deinit(self: GenerativeExperimentState) void {
         self.square.deinit();
         self.triangle.deinit();
+        self.circle.deinit();
     }
 };
 
@@ -79,6 +82,17 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     try genexp.triangle.points.append(SandPoint.init(-100.0, -100.0, rand));
     try genexp.triangle.points.append(SandPoint.init(100.0, -100.0, rand));
 
+    {
+        const num_segments: u32 = 8;
+        var i: u32 = 0;
+        while (i < num_segments) : (i += 1) {
+            const f = @intToFloat(f32, i) / @intToFloat(f32, num_segments);
+            const x = 120.0 * math.cos(2.0 * math.pi * f);
+            const y = 120.0 * math.sin(2.0 * math.pi * f);
+            try genexp.circle.points.append(SandPoint.init(x, y, rand));
+        }
+    }
+
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
@@ -95,5 +109,10 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     gl.pushMatrix();
     gl.translatef(300.0, 0.0, 0.0);
     genexp.triangle.draw();
+    gl.popMatrix();
+
+    gl.pushMatrix();
+    gl.translatef(0.0, 300.0, 0.0);
+    genexp.circle.draw();
     gl.popMatrix();
 }
