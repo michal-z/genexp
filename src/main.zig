@@ -3,7 +3,7 @@ const panic = std.debug.panic;
 const assert = std.debug.assert;
 const os = std.os;
 const gl = @import("opengl.zig");
-const genexp = @import("genexp003.zig");
+const genexp = @import("genexp004.zig");
 
 fn updateFrameStats(window: os.windows.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
     const state = struct {
@@ -117,7 +117,7 @@ pub fn main() !void {
         os.windows.user32.WS_CAPTION +
         os.windows.user32.WS_MINIMIZEBOX;
 
-    var rect = RECT{ .left = 0, .top = 0, .right = 1920, .bottom = 1080 };
+    var rect = RECT{ .left = 0, .top = 0, .right = genexp.window_width, .bottom = genexp.window_height };
     _ = AdjustWindowRect(&rect, style, false);
 
     const window = os.windows.user32.CreateWindowExA(
