@@ -42,9 +42,10 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
             while (x <= 3.0) : (x += step) {
                 const xoff = genexp.prng.random.floatNorm(f32) * 0.005;
                 const yoff = genexp.prng.random.floatNorm(f32) * 0.005;
-                //const v = sinusoidal(Vec2{ .x = x, .y = genexp.y }, 3.0);
-                //const v = hyperbolic(Vec2{ .x = x, .y = genexp.y }, 1.0);
-                const v = pdj(Vec2{ .x = x, .y = genexp.y }, 1.0);
+                const v0 = hyperbolic(Vec2{ .x = x, .y = genexp.y }, 1.0);
+                const v1 = pdj(Vec2{ .x = x, .y = genexp.y }, 1.0);
+                const v2 = sinusoidal(Vec2{ .x = x, .y = genexp.y }, 2.0);
+                const v = Vec2{ .x = (v0.x + v1.x) * v2.x, .y = (v0.y + v1.y) * v2.y };
                 gl.vertex2f(v.x + xoff, v.y + yoff);
             }
             genexp.y += step;
@@ -54,7 +55,7 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
 }
 
 fn sinusoidal(v: Vec2, scale: f32) Vec2 {
-    return Vec2{ .x = scale * math.sin(v.x), .y = scale * math.sin(v.y) };
+    return Vec2{ .x = scale * math.cos(v.x), .y = scale * math.sin(-v.y) };
 }
 
 fn hyperbolic(v: Vec2, scale: f32) Vec2 {
@@ -66,14 +67,14 @@ fn hyperbolic(v: Vec2, scale: f32) Vec2 {
 }
 
 fn pdj(v: Vec2, scale: f32) Vec2 {
-    //const pdj_a = 0.1;
+    const pdj_a = 0.1;
     //const pdj_b = 1.9;
     //const pdj_c = -0.8;
-    //const pdj_d = -1.2;
-    const pdj_a = 1.0111;
+    const pdj_d = -1.2;
+    //const pdj_a = 1.0111;
     const pdj_b = -1.011;
     const pdj_c = 2.08;
-    const pdj_d = 10.2;
+    //const pdj_d = 10.2;
     return Vec2{
         .x = scale * (math.sin(pdj_a * v.y) - math.cos(pdj_b * v.x)),
         .y = scale * (math.sin(pdj_c * v.x) - math.cos(pdj_d * v.y)),
