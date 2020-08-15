@@ -48,6 +48,8 @@ pub const DST_ALPHA = 0x0304;
 pub const ONE_MINUS_DST_ALPHA = 0x0305;
 pub const DST_COLOR = 0x0306;
 pub const ONE_MINUS_DST_COLOR = 0x0307;
+pub const FUNC_REVERSE_SUBTRACT = 0x800B;
+pub const FUNC_SUBTRACT = 0x800A;
 
 var wCreateContext: fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC = undefined;
 var wDeleteContext: fn (?os.windows.HGLRC) callconv(.Stdcall) bool = undefined;
@@ -73,6 +75,7 @@ pub var getError: fn () callconv(.Stdcall) Enum = undefined;
 pub var pointSize: fn (Float) callconv(.Stdcall) void = undefined;
 pub var lineWidth: fn (Float) callconv(.Stdcall) void = undefined;
 pub var blendFunc: fn (Enum, Enum) callconv(.Stdcall) void = undefined;
+pub var blendEquation: fn (Enum) callconv(.Stdcall) void = undefined;
 pub var vertex2f: fn (Float, Float) callconv(.Stdcall) void = undefined;
 pub var vertex2i: fn (Int, Int) callconv(.Stdcall) void = undefined;
 pub var color4f: fn (Float, Float, Float, Float) callconv(.Stdcall) void = undefined;
@@ -139,6 +142,7 @@ pub fn init(window: ?os.windows.HWND) void {
     pointSize = getProcAddress(@TypeOf(pointSize), "glPointSize").?;
     lineWidth = getProcAddress(@TypeOf(lineWidth), "glLineWidth").?;
     blendFunc = getProcAddress(@TypeOf(blendFunc), "glBlendFunc").?;
+    blendEquation = getProcAddress(@TypeOf(blendEquation), "glBlendEquation").?;
     vertex2f = getProcAddress(@TypeOf(vertex2f), "glVertex2f").?;
     vertex2i = getProcAddress(@TypeOf(vertex2i), "glVertex2i").?;
     color4f = getProcAddress(@TypeOf(color4f), "glColor4f").?;

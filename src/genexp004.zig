@@ -22,10 +22,11 @@ pub const GenerativeExperimentState = struct {
 };
 
 pub fn setup(genexp: *GenerativeExperimentState) !void {
-    gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
+    gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
     gl.pointSize(1.0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
+    gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
     gl.matrixLoadIdentityEXT(gl.PROJECTION);
     gl.matrixOrthoEXT(gl.PROJECTION, -3.0, 3.0, -3.0, 3.0, -1.0, 1.0);
 }
@@ -36,15 +37,45 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
         gl.begin(gl.POINTS);
         const step = 1.5 / @intToFloat(f32, window_width);
         var i: u32 = 0;
-        while (i < 20) : (i += 1) {
+        while (i < 4) : (i += 1) {
             var x: f32 = -3.0;
             while (x <= 3.0) : (x += step) {
                 const xoff = genexp.prng.random.floatNorm(f32) * 0.005;
                 const yoff = genexp.prng.random.floatNorm(f32) * 0.005;
-                gl.vertex2f(3.0 * math.sin(x) + xoff, 3.0 * math.sin(genexp.y) + yoff);
+                //const v = sinusoidal(Vec2{ .x = x, .y = genexp.y }, 3.0);
+                //const v = hyperbolic(Vec2{ .x = x, .y = genexp.y }, 1.0);
+                const v = pdj(Vec2{ .x = x, .y = genexp.y }, 1.0);
+                gl.vertex2f(v.x + xoff, v.y + yoff);
             }
             genexp.y += step;
         }
         gl.end();
     }
+}
+
+fn sinusoidal(v: Vec2, scale: f32) Vec2 {
+    return Vec2{ .x = scale * math.sin(v.x), .y = scale * math.sin(v.y) };
+}
+
+fn hyperbolic(v: Vec2, scale: f32) Vec2 {
+    const r = v.length() + 0.00001;
+    const theta = math.atan2(f32, v.x, v.y);
+    const x = scale * math.sin(theta) / r;
+    const y = scale * math.cos(theta) * r;
+    return Vec2{ .x = x, .y = y };
+}
+
+fn pdj(v: Vec2, scale: f32) Vec2 {
+    //const pdj_a = 0.1;
+    //const pdj_b = 1.9;
+    //const pdj_c = -0.8;
+    //const pdj_d = -1.2;
+    const pdj_a = 1.0111;
+    const pdj_b = -1.011;
+    const pdj_c = 2.08;
+    const pdj_d = 10.2;
+    return Vec2{
+        .x = scale * (math.sin(pdj_a * v.y) - math.cos(pdj_b * v.x)),
+        .y = scale * (math.sin(pdj_c * v.x) - math.cos(pdj_d * v.y)),
+    };
 }
