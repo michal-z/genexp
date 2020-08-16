@@ -4,8 +4,8 @@ const gl = @import("opengl.zig");
 usingnamespace @import("util.zig");
 
 pub const window_name = "genexp004";
-pub const window_width = 1024;
-pub const window_height = 1024;
+pub const window_width = 2 * 1024;
+pub const window_height = 2 * 1024;
 
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
@@ -33,7 +33,6 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
 
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     if (genexp.y <= 3.0) {
-        gl.color4f(0.01, 0.01, 0.01, 1.0);
         gl.begin(gl.POINTS);
         const step = 1.5 / @intToFloat(f32, window_width);
         var i: u32 = 0;
@@ -45,7 +44,9 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
                 const v0 = hyperbolic(Vec2{ .x = x, .y = genexp.y }, 1.0);
                 const v1 = pdj(Vec2{ .x = x, .y = genexp.y }, 1.0);
                 const v2 = sinusoidal(Vec2{ .x = x, .y = genexp.y }, 2.0);
-                const v = Vec2{ .x = (v0.x + v1.x) * v2.x, .y = (v0.y + v1.y) * v2.y };
+                var v = Vec2{ .x = (v0.x + v1.x) + v2.x, .y = (v0.y + v1.y) * v2.y };
+                v = sinusoidal(v, 3.0);
+                gl.color4f(0.02, 0.02, 0.02, 1.0);
                 gl.vertex2f(v.x + xoff, v.y + yoff);
             }
             genexp.y += step;
@@ -55,7 +56,7 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
 }
 
 fn sinusoidal(v: Vec2, scale: f32) Vec2 {
-    return Vec2{ .x = scale * math.cos(v.x), .y = scale * math.sin(-v.y) };
+    return Vec2{ .x = scale * math.sin(v.x), .y = scale * math.sin(v.y) };
 }
 
 fn hyperbolic(v: Vec2, scale: f32) Vec2 {
@@ -67,14 +68,14 @@ fn hyperbolic(v: Vec2, scale: f32) Vec2 {
 }
 
 fn pdj(v: Vec2, scale: f32) Vec2 {
-    const pdj_a = 0.1;
+    //const pdj_a = 0.1;
     //const pdj_b = 1.9;
     //const pdj_c = -0.8;
-    const pdj_d = -1.2;
-    //const pdj_a = 1.0111;
+    //const pdj_d = -1.2;
+    const pdj_a = 1.0111;
     const pdj_b = -1.011;
     const pdj_c = 2.08;
-    //const pdj_d = 10.2;
+    const pdj_d = 10.2;
     return Vec2{
         .x = scale * (math.sin(pdj_a * v.y) - math.cos(pdj_b * v.x)),
         .y = scale * (math.sin(pdj_c * v.x) - math.cos(pdj_d * v.y)),
