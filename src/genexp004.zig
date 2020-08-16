@@ -34,20 +34,24 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     if (genexp.y <= 3.0) {
         gl.begin(gl.POINTS);
-        const step = 1.5 / @intToFloat(f32, window_width);
-        var i: u32 = 0;
-        while (i < 4) : (i += 1) {
+        const step = 12.0 / @intToFloat(f32, window_width);
+        var row: u32 = 0;
+        while (row < 4) : (row += 1) {
             var x: f32 = -3.0;
             while (x <= 3.0) : (x += step) {
-                const xoff = genexp.prng.random.floatNorm(f32) * 0.005;
-                const yoff = genexp.prng.random.floatNorm(f32) * 0.005;
-                const v0 = hyperbolic(Vec2{ .x = x, .y = genexp.y }, 1.0);
-                const v1 = pdj(Vec2{ .x = x, .y = genexp.y }, 1.0);
-                const v2 = sinusoidal(Vec2{ .x = x, .y = genexp.y }, 2.0);
-                var v = Vec2{ .x = (v0.x + v1.x) + v2.x, .y = (v0.y + v1.y) * v2.y };
-                v = sinusoidal(v, 3.0);
-                gl.color4f(0.02, 0.02, 0.02, 1.0);
-                gl.vertex2f(v.x + xoff, v.y + yoff);
+                var v = Vec2{ .x = x, .y = genexp.y };
+                var i: u32 = 0;
+                while (i < 64) : (i += 1) {
+                    const xoff = genexp.prng.random.floatNorm(f32) * 0.005;
+                    const yoff = genexp.prng.random.floatNorm(f32) * 0.005;
+                    const v0 = hyperbolic(Vec2{ .x = v.x, .y = v.y }, 1.0);
+                    const v1 = pdj(Vec2{ .x = v0.x, .y = v0.y }, 1.0);
+                    const v2 = sinusoidal(Vec2{ .x = v1.x, .y = v1.y }, 2.0);
+                    v = Vec2{ .x = (v0.x + v1.x) + v2.x, .y = (v0.y + v1.y) * v2.y };
+                    v = sinusoidal(v, 3.0);
+                    gl.color4f(0.01, 0.01, 0.01, 1.0);
+                    gl.vertex2f(v.x + xoff, v.y + yoff);
+                }
             }
             genexp.y += step;
         }
