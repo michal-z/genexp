@@ -148,18 +148,19 @@ pub fn main() !void {
     gl.enable(gl.FRAMEBUFFER_SRGB);
     gl.enable(gl.MULTISAMPLE);
 
-    var fbo_texture: gl.Uint = undefined;
+    var fbo_texture: u32 = undefined;
     gl.createTextures(gl.TEXTURE_2D_MULTISAMPLE, 1, &fbo_texture);
     gl.textureStorage2DMultisample(
         fbo_texture,
         8,
-        gl.SRGB8_ALPHA8,
+        gl.RGBA32F,
+        //gl.SRGB8_ALPHA8,
         genexp.window_width,
         genexp.window_height,
         gl.FALSE,
     );
 
-    var fbo: gl.Uint = undefined;
+    var fbo: u32 = undefined;
     gl.createFramebuffers(1, &fbo);
     gl.namedFramebufferTexture(fbo, gl.COLOR_ATTACHMENT0, fbo_texture, 0);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
@@ -208,5 +209,8 @@ pub fn main() !void {
     genexp_state.deinit();
     gl.deleteTextures(1, &fbo_texture);
     gl.deleteFramebuffers(1, &fbo);
+    if (gl.getError() != 0) {
+        panic("OpenGL error detected.", .{});
+    }
     gl.deinit();
 }
