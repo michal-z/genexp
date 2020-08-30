@@ -107,6 +107,23 @@ pub const UNSIGNED_SHORT = 0x1403;
 pub const INT = 0x1404;
 pub const UNSIGNED_INT = 0x1405;
 pub const FLOAT = 0x1406;
+pub const READ_ONLY = 0x88B8;
+pub const WRITE_ONLY = 0x88B9;
+pub const READ_WRITE = 0x88BA;
+pub const ATOMIC_COUNTER_BUFFER = 0x92C0;
+pub const VERTEX_ATTRIB_ARRAY_BARRIER_BIT = 0x00000001;
+pub const ELEMENT_ARRAY_BARRIER_BIT = 0x00000002;
+pub const UNIFORM_BARRIER_BIT = 0x00000004;
+pub const TEXTURE_FETCH_BARRIER_BIT = 0x00000008;
+pub const SHADER_IMAGE_ACCESS_BARRIER_BIT = 0x00000020;
+pub const COMMAND_BARRIER_BIT = 0x00000040;
+pub const PIXEL_BUFFER_BARRIER_BIT = 0x00000080;
+pub const TEXTURE_UPDATE_BARRIER_BIT = 0x00000100;
+pub const BUFFER_UPDATE_BARRIER_BIT = 0x00000200;
+pub const FRAMEBUFFER_BARRIER_BIT = 0x00000400;
+pub const TRANSFORM_FEEDBACK_BARRIER_BIT = 0x00000800;
+pub const ATOMIC_COUNTER_BARRIER_BIT = 0x00001000;
+pub const ALL_BARRIER_BITS = 0xFFFFFFFF;
 
 var wCreateContext: fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC = undefined;
 var wDeleteContext: fn (?os.windows.HGLRC) callconv(.Stdcall) bool = undefined;
@@ -152,6 +169,9 @@ pub var createBuffers: fn (GLsizei, [*c]GLuint) callconv(.Stdcall) void = undefi
 pub var deleteBuffers: fn (GLsizei, [*c]const GLuint) callconv(.Stdcall) void = undefined;
 pub var namedBufferStorage: fn (GLuint, GLsizeiptr, ?*const c_void, GLbitfield) callconv(.Stdcall) void = undefined;
 pub var clearTexImage: fn (GLuint, GLint, GLenum, GLenum, ?*const c_void) callconv(.Stdcall) void = undefined;
+pub var bindImageTexture: fn (GLuint, GLuint, GLint, GLboolean, GLint, GLenum, GLenum) callconv(.Stdcall) void = undefined;
+pub var deleteProgram: fn (GLuint) callconv(.Stdcall) void = undefined;
+pub var memoryBarrier: fn (GLbitfield) callconv(.Stdcall) void = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
 var opengl_context: ?os.windows.HGLRC = null;
@@ -229,6 +249,9 @@ pub fn init(window: ?os.windows.HWND) void {
     deleteBuffers = getProcAddress(@TypeOf(deleteBuffers), "glDeleteBuffers").?;
     namedBufferStorage = getProcAddress(@TypeOf(namedBufferStorage), "glNamedBufferStorage").?;
     clearTexImage = getProcAddress(@TypeOf(clearTexImage), "glClearTexImage").?;
+    bindImageTexture = getProcAddress(@TypeOf(bindImageTexture), "glBindImageTexture").?;
+    deleteProgram = getProcAddress(@TypeOf(deleteProgram), "glDeleteProgram").?;
+    memoryBarrier = getProcAddress(@TypeOf(memoryBarrier), "glMemoryBarrier").?;
 }
 
 pub fn deinit() void {

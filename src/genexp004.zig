@@ -12,6 +12,7 @@ pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
     y: f32 = -3.0,
     fs_count_hits: u32 = 0,
+    fs_draw_hits: u32 = 0,
     tex_hits: u32 = 0,
     buf_max_hits: u32 = 0,
 
@@ -24,15 +25,14 @@ pub const GenerativeExperimentState = struct {
     pub fn deinit(self: GenerativeExperimentState) void {
         gl.deleteBuffers(1, &self.buf_max_hits);
         gl.deleteTextures(1, &self.tex_hits);
+        gl.deleteProgram(self.fs_count_hits);
+        gl.deleteProgram(self.fs_draw_hits);
     }
 };
 
 pub fn setup(genexp: *GenerativeExperimentState) !void {
     gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 1.0, 1.0, 1.0, 1.0 });
     gl.pointSize(1.0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
-    gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
     gl.matrixLoadIdentityEXT(gl.PROJECTION);
     gl.matrixOrthoEXT(gl.PROJECTION, -3.0, 3.0, -3.0, 3.0, -1.0, 1.0);
 
@@ -46,19 +46,38 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     genexp.fs_count_hits = gl.createShaderProgramv(gl.FRAGMENT_SHADER, 1, &@as([*c]const u8,
         \\  #version 460 compatibility
         \\  layout(binding = 0, r32ui) uniform uimage2D hits;
-        \\  layout(binding = 1) uniform atomic_uint max_hits;
+        \\  layout(binding = 0) uniform atomic_uint max_hits;
         \\
         \\  void main() {
         \\      uint v = imageAtomicAdd(hits, ivec2(gl_FragCoord.xy), 1);
         \\      atomicCounterMax(max_hits, v + 1);
         \\  }
     ));
-    gl.useProgram(genexp.fs_count_hits);
-    gl.useProgram(0);
+
+    genexp.fs_draw_hits = gl.createShaderProgramv(gl.FRAGMENT_SHADER, 1, &@as([*c]const u8,
+        \\  #version 460 compatibility
+        \\  layout(binding = 0, r32ui) uniform uimage2D hits;
+        \\  layout(binding = 0) uniform atomic_uint max_hits;
+        \\
+        \\  void main() {
+        \\      float v = float(imageLoad(hits, ivec2(gl_FragCoord.xy)).r);
+        \\      float mx = float(atomicCounter(max_hits));
+        \\      mx = log(mx + 1.0);
+        \\      v = log(v + 1.0);
+        \\      float c = 1.0 - v / mx;
+        \\      c = pow(c, 1.8);
+        \\      gl_FragColor = vec4(c, c, c, 1.0);
+        \\  }
+    ));
 }
 
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
+    gl.bindImageTexture(0, genexp.tex_hits, 0, gl.FALSE, 0, gl.READ_WRITE, gl.R32UI);
+    gl.bindBufferBase(gl.ATOMIC_COUNTER_BUFFER, 0, genexp.buf_max_hits);
+
     if (genexp.y <= 3.0) {
+        gl.useProgram(genexp.fs_count_hits);
+
         gl.begin(gl.POINTS);
         const step = 0.25 / @intToFloat(f32, window_width);
         var row: u32 = 0;
@@ -76,14 +95,22 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
                     v = Vec2{ .x = (v0.x + v1.x) - v2.x, .y = (v0.y - v1.y) + v2.y };
                     v = julia(Vec2{ .x = v.x, .y = v.y }, 1.0, genexp.prng.random.float(f32));
                     v = sinusoidal(v, 2.8);
-                    gl.color4f(0.0003, 0.0003, 0.0003, 1.0);
                     gl.vertex2f(v.x + xoff, v.y + yoff);
                 }
             }
             genexp.y += step;
         }
         gl.end();
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT | gl.ATOMIC_COUNTER_BARRIER_BIT);
     }
+
+    gl.useProgram(genexp.fs_draw_hits);
+    gl.begin(gl.QUADS);
+    gl.vertex2f(-3.0, -3.0);
+    gl.vertex2f(3.0, -3.0);
+    gl.vertex2f(3.0, 3.0);
+    gl.vertex2f(-3.0, 3.0);
+    gl.end();
 }
 
 fn sinusoidal(v: Vec2, scale: f32) Vec2 {

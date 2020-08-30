@@ -153,8 +153,7 @@ pub fn main() !void {
     gl.textureStorage2DMultisample(
         fbo_texture,
         8,
-        gl.RGBA32F,
-        //gl.SRGB8_ALPHA8,
+        gl.SRGB8_ALPHA8,
         genexp.window_width,
         genexp.window_height,
         gl.FALSE,
