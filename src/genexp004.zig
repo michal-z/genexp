@@ -8,9 +8,11 @@ pub const window_name = "genexp004";
 pub const window_width = 2 * 1024;
 pub const window_height = 2 * 1024;
 
+const bounds: f32 = 0.1;
+
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
-    y: f32 = -3.0,
+    y: f32 = -bounds,
     fs_count_hits: u32 = 0,
     fs_draw_hits: u32 = 0,
     tex_hits: u32 = 0,
@@ -65,7 +67,6 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
         \\      max_num = log(max_num + 1.0);
         \\      num = log(num + 1.0);
         \\      float c = 1.0 - num / max_num;
-        \\      c = pow(c, 2.4);
         \\      gl_FragColor = vec4(c, c, c, 1.0);
         \\  }
     ));
@@ -75,25 +76,24 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     gl.bindImageTexture(0, genexp.tex_hits, 0, gl.FALSE, 0, gl.READ_WRITE, gl.R32UI);
     gl.bindBufferBase(gl.ATOMIC_COUNTER_BUFFER, 0, genexp.buf_max_hits);
 
-    if (genexp.y <= 3.0) {
+    if (genexp.y <= bounds) {
         gl.colorMask(gl.FALSE, gl.FALSE, gl.FALSE, gl.FALSE);
         gl.useProgram(genexp.fs_count_hits);
 
         gl.begin(gl.POINTS);
-        const step = 0.125 / @intToFloat(f32, window_width);
+        const step: f32 = 0.00003;
         var row: u32 = 0;
         while (row < 4) : (row += 1) {
-            var x: f32 = -3.0;
-            while (x <= 3.0) : (x += step) {
+            var x: f32 = -bounds;
+            while (x <= bounds) : (x += step) {
                 var v = Vec2{ .x = x, .y = genexp.y };
                 var i: u32 = 0;
-                while (i < 1) : (i += 1) {
+                while (i < 8) : (i += 1) {
                     const v0 = hyperbolic(Vec2{ .x = v.x, .y = v.y }, 1.0);
                     const v1 = pdj(Vec2{ .x = v0.x, .y = v0.y }, 1.0);
                     const v2 = sinusoidal(Vec2{ .x = v1.x, .y = v1.y }, 2.0);
                     v = Vec2{ .x = (v0.x + v1.x) + v2.x, .y = (v0.y + v1.y) - v2.y };
                     v = julia(Vec2{ .x = v.x, .y = v.y }, 1.0, genexp.prng.random.float(f32));
-                    v = sinusoidal(v, 3.0);
                     gl.vertex2f(v.x, v.y);
                 }
             }
