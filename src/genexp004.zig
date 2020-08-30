@@ -37,7 +37,7 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     gl.matrixOrthoEXT(gl.PROJECTION, -3.0, 3.0, -3.0, 3.0, -1.0, 1.0);
 
     gl.createBuffers(1, &genexp.buf_max_hits);
-    gl.namedBufferStorage(genexp.buf_max_hits, 4, &[1]u32{0}, 0);
+    gl.namedBufferStorage(genexp.buf_max_hits, 8, &[1]u32{0}, 0);
 
     gl.createTextures(gl.TEXTURE_2D, 1, &genexp.tex_hits);
     gl.textureStorage2D(genexp.tex_hits, 1, gl.R32UI, window_width, window_height);
@@ -45,27 +45,27 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
 
     genexp.fs_count_hits = gl.createShaderProgramv(gl.FRAGMENT_SHADER, 1, &@as([*c]const u8,
         \\  #version 460 compatibility
-        \\  layout(binding = 0, r32ui) uniform uimage2D hits;
-        \\  layout(binding = 0) uniform atomic_uint max_hits;
+        \\  layout(binding = 0, r32ui) uniform uimage2D num_hits;
+        \\  layout(binding = 0, offset = 0) uniform atomic_uint max_num_hits;
         \\
         \\  void main() {
-        \\      uint v = imageAtomicAdd(hits, ivec2(gl_FragCoord.xy), 1);
-        \\      atomicCounterMax(max_hits, v + 1);
+        \\      uint num = imageAtomicAdd(num_hits, ivec2(gl_FragCoord.xy), 1);
+        \\      atomicCounterMax(max_num_hits, num + 1);
         \\  }
     ));
 
     genexp.fs_draw_hits = gl.createShaderProgramv(gl.FRAGMENT_SHADER, 1, &@as([*c]const u8,
         \\  #version 460 compatibility
-        \\  layout(binding = 0, r32ui) uniform uimage2D hits;
-        \\  layout(binding = 0) uniform atomic_uint max_hits;
+        \\  layout(binding = 0, r32ui) uniform uimage2D num_hits;
+        \\  layout(binding = 0, offset = 0) uniform atomic_uint max_num_hits;
         \\
         \\  void main() {
-        \\      float v = float(imageLoad(hits, ivec2(gl_FragCoord.xy)).r);
-        \\      float mx = float(atomicCounter(max_hits));
-        \\      mx = log(mx + 1.0);
-        \\      v = log(v + 1.0);
-        \\      float c = 1.0 - v / mx;
-        \\      c = pow(c, 1.8);
+        \\      float num = float(imageLoad(num_hits, ivec2(gl_FragCoord.xy)).r);
+        \\      float max_num = float(atomicCounter(max_num_hits));
+        \\      max_num = log(max_num + 1.0);
+        \\      num = log(num + 1.0);
+        \\      float c = 1.0 - num / max_num;
+        \\      c = pow(c, 2.4);
         \\      gl_FragColor = vec4(c, c, c, 1.0);
         \\  }
     ));
@@ -76,10 +76,11 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
     gl.bindBufferBase(gl.ATOMIC_COUNTER_BUFFER, 0, genexp.buf_max_hits);
 
     if (genexp.y <= 3.0) {
+        gl.colorMask(gl.FALSE, gl.FALSE, gl.FALSE, gl.FALSE);
         gl.useProgram(genexp.fs_count_hits);
 
         gl.begin(gl.POINTS);
-        const step = 0.25 / @intToFloat(f32, window_width);
+        const step = 0.125 / @intToFloat(f32, window_width);
         var row: u32 = 0;
         while (row < 4) : (row += 1) {
             var x: f32 = -3.0;
@@ -87,20 +88,20 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
                 var v = Vec2{ .x = x, .y = genexp.y };
                 var i: u32 = 0;
                 while (i < 1) : (i += 1) {
-                    const xoff = genexp.prng.random.floatNorm(f32) * 0.005;
-                    const yoff = genexp.prng.random.floatNorm(f32) * 0.005;
                     const v0 = hyperbolic(Vec2{ .x = v.x, .y = v.y }, 1.0);
                     const v1 = pdj(Vec2{ .x = v0.x, .y = v0.y }, 1.0);
                     const v2 = sinusoidal(Vec2{ .x = v1.x, .y = v1.y }, 2.0);
-                    v = Vec2{ .x = (v0.x + v1.x) - v2.x, .y = (v0.y - v1.y) + v2.y };
+                    v = Vec2{ .x = (v0.x + v1.x) + v2.x, .y = (v0.y + v1.y) - v2.y };
                     v = julia(Vec2{ .x = v.x, .y = v.y }, 1.0, genexp.prng.random.float(f32));
-                    v = sinusoidal(v, 2.8);
-                    gl.vertex2f(v.x + xoff, v.y + yoff);
+                    v = sinusoidal(v, 3.0);
+                    gl.vertex2f(v.x, v.y);
                 }
             }
             genexp.y += step;
         }
         gl.end();
+
+        gl.colorMask(gl.TRUE, gl.TRUE, gl.TRUE, gl.TRUE);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT | gl.ATOMIC_COUNTER_BARRIER_BIT);
     }
 

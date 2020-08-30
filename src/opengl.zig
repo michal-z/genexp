@@ -172,6 +172,7 @@ pub var clearTexImage: fn (GLuint, GLint, GLenum, GLenum, ?*const c_void) callco
 pub var bindImageTexture: fn (GLuint, GLuint, GLint, GLboolean, GLint, GLenum, GLenum) callconv(.Stdcall) void = undefined;
 pub var deleteProgram: fn (GLuint) callconv(.Stdcall) void = undefined;
 pub var memoryBarrier: fn (GLbitfield) callconv(.Stdcall) void = undefined;
+pub var colorMask: fn (GLboolean, GLboolean, GLboolean, GLboolean) void = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
 var opengl_context: ?os.windows.HGLRC = null;
@@ -252,6 +253,7 @@ pub fn init(window: ?os.windows.HWND) void {
     bindImageTexture = getProcAddress(@TypeOf(bindImageTexture), "glBindImageTexture").?;
     deleteProgram = getProcAddress(@TypeOf(deleteProgram), "glDeleteProgram").?;
     memoryBarrier = getProcAddress(@TypeOf(memoryBarrier), "glMemoryBarrier").?;
+    colorMask = getProcAddress(@TypeOf(colorMask), "glColorMask").?;
 }
 
 pub fn deinit() void {
