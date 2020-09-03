@@ -19,6 +19,24 @@ pub const Vec2 = packed struct {
     }
 };
 
+pub const Vec2d = packed struct {
+    x: f64,
+    y: f64,
+
+    pub fn dot(a: Vec2d, b: Vec2d) f64 {
+        return a.x * b.x + a.y * b.y;
+    }
+
+    pub fn length(a: Vec2d) f64 {
+        return math.sqrt(dot(a, a));
+    }
+
+    pub fn normalize(a: Vec2d) Vec2d {
+        const f = 1.0 / a.length();
+        return Vec2d{ .x = f * a.x, .y = f * a.y };
+    }
+};
+
 pub const Color = packed struct {
     r: u8,
     g: u8,

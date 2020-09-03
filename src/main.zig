@@ -148,10 +148,10 @@ pub fn main() !void {
     gl.enable(gl.FRAMEBUFFER_SRGB);
     gl.enable(gl.MULTISAMPLE);
 
-    var fbo_texture: u32 = undefined;
-    gl.createTextures(gl.TEXTURE_2D_MULTISAMPLE, 1, &fbo_texture);
+    var tex_srgb: u32 = undefined;
+    gl.createTextures(gl.TEXTURE_2D_MULTISAMPLE, 1, &tex_srgb);
     gl.textureStorage2DMultisample(
-        fbo_texture,
+        tex_srgb,
         8,
         gl.SRGB8_ALPHA8,
         genexp.window_width,
@@ -159,11 +159,11 @@ pub fn main() !void {
         gl.FALSE,
     );
 
-    var fbo: u32 = undefined;
-    gl.createFramebuffers(1, &fbo);
-    gl.namedFramebufferTexture(fbo, gl.COLOR_ATTACHMENT0, fbo_texture, 0);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-    gl.clearBufferfv(gl.COLOR, 0, &[4]f32{ 0.0, 0.0, 0.0, 0.0 });
+    var fbo_srgb: u32 = undefined;
+    gl.createFramebuffers(1, &fbo_srgb);
+    gl.namedFramebufferTexture(fbo_srgb, gl.COLOR_ATTACHMENT0, tex_srgb, 0);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_srgb);
+    gl.clearBufferfv(gl.COLOR, 0, &[_]f32{ 0.0, 0.0, 0.0, 0.0 });
 
     var genexp_state = genexp.GenerativeExperimentState.init();
     try genexp.setup(&genexp_state);
@@ -177,14 +177,14 @@ pub fn main() !void {
             if (message.message == os.windows.user32.WM_QUIT)
                 break;
         } else {
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_srgb);
 
             const stats = updateFrameStats(window.?, genexp.window_name);
             genexp.update(&genexp_state, stats.time, stats.delta_time);
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
             gl.blitNamedFramebuffer(
-                fbo,
+                fbo_srgb,
                 0,
                 0,
                 0,
@@ -206,8 +206,8 @@ pub fn main() !void {
     }
 
     genexp_state.deinit();
-    gl.deleteTextures(1, &fbo_texture);
-    gl.deleteFramebuffers(1, &fbo);
+    gl.deleteTextures(1, &tex_srgb);
+    gl.deleteFramebuffers(1, &fbo_srgb);
     if (gl.getError() != 0) {
         panic("OpenGL error detected.", .{});
     }

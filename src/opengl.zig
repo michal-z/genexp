@@ -52,6 +52,7 @@ pub const DST_COLOR = 0x0306;
 pub const ONE_MINUS_DST_COLOR = 0x0307;
 pub const FUNC_REVERSE_SUBTRACT = 0x800B;
 pub const FUNC_SUBTRACT = 0x800A;
+pub const FUNC_ADD = 0x8006;
 pub const FRAGMENT_SHADER = 0x8B30;
 pub const VERTEX_SHADER = 0x8B31;
 pub const TEXTURE_2D = 0x0DE1;
@@ -124,6 +125,20 @@ pub const FRAMEBUFFER_BARRIER_BIT = 0x00000400;
 pub const TRANSFORM_FEEDBACK_BARRIER_BIT = 0x00000800;
 pub const ATOMIC_COUNTER_BARRIER_BIT = 0x00001000;
 pub const ALL_BARRIER_BITS = 0xFFFFFFFF;
+pub const FRAMEBUFFER_BINDING = 0x8CA6;
+pub const DRAW_FRAMEBUFFER_BINDING = 0x8CA6;
+pub const RENDERBUFFER_BINDING = 0x8CA7;
+pub const READ_FRAMEBUFFER = 0x8CA8;
+pub const READ_FRAMEBUFFER_BINDING = 0x8CAA;
+pub const STENCIL_INDEX = 0x1901;
+pub const DEPTH_COMPONENT = 0x1902;
+pub const RED = 0x1903;
+pub const GREEN = 0x1904;
+pub const BLUE = 0x1905;
+pub const ALPHA = 0x1906;
+pub const RGB = 0x1907;
+pub const RGBA = 0x1908;
+pub const TEXTURE_RECTANGLE = 0x84F5;
 
 var wCreateContext: fn (?os.windows.HDC) callconv(.Stdcall) ?os.windows.HGLRC = undefined;
 var wDeleteContext: fn (?os.windows.HGLRC) callconv(.Stdcall) bool = undefined;
@@ -135,6 +150,7 @@ pub var clearBufferfv: fn (GLenum, GLint, [*c]const GLfloat) callconv(.Stdcall) 
 pub var matrixLoadIdentityEXT: fn (GLenum) callconv(.Stdcall) void = undefined;
 pub var matrixOrthoEXT: fn (GLenum, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble) callconv(.Stdcall) void = undefined;
 pub var enable: fn (GLenum) callconv(.Stdcall) void = undefined;
+pub var disable: fn (GLenum) callconv(.Stdcall) void = undefined;
 pub var textureStorage2DMultisample: fn (GLuint, GLsizei, GLenum, GLsizei, GLsizei, GLboolean) callconv(.Stdcall) void = undefined;
 pub var textureStorage2D: fn (GLuint, GLsizei, GLenum, GLsizei, GLsizei) callconv(.Stdcall) void = undefined;
 pub var createTextures: fn (GLenum, GLsizei, [*c]GLuint) callconv(.Stdcall) void = undefined;
@@ -152,6 +168,7 @@ pub var lineWidth: fn (GLfloat) callconv(.Stdcall) void = undefined;
 pub var blendFunc: fn (GLenum, GLenum) callconv(.Stdcall) void = undefined;
 pub var blendEquation: fn (GLenum) callconv(.Stdcall) void = undefined;
 pub var vertex2f: fn (GLfloat, GLfloat) callconv(.Stdcall) void = undefined;
+pub var vertex2d: fn (GLdouble, GLdouble) callconv(.Stdcall) void = undefined;
 pub var vertex2i: fn (GLint, GLint) callconv(.Stdcall) void = undefined;
 pub var color4f: fn (GLfloat, GLfloat, GLfloat, GLfloat) callconv(.Stdcall) void = undefined;
 pub var color4ub: fn (GLubyte, GLubyte, GLubyte, GLubyte) callconv(.Stdcall) void = undefined;
@@ -173,6 +190,8 @@ pub var bindImageTexture: fn (GLuint, GLuint, GLint, GLboolean, GLint, GLenum, G
 pub var deleteProgram: fn (GLuint) callconv(.Stdcall) void = undefined;
 pub var memoryBarrier: fn (GLbitfield) callconv(.Stdcall) void = undefined;
 pub var colorMask: fn (GLboolean, GLboolean, GLboolean, GLboolean) void = undefined;
+pub var getIntegerv: fn (GLenum, [*c]GLint) void = undefined;
+pub var bindTextureUnit: fn (GLuint, GLuint) callconv(.Stdcall) void = undefined;
 
 var opengl32_dll: std.DynLib = undefined;
 var opengl_context: ?os.windows.HGLRC = null;
@@ -216,6 +235,7 @@ pub fn init(window: ?os.windows.HWND) void {
     matrixLoadIdentityEXT = getProcAddress(@TypeOf(matrixLoadIdentityEXT), "glMatrixLoadIdentityEXT").?;
     matrixOrthoEXT = getProcAddress(@TypeOf(matrixOrthoEXT), "glMatrixOrthoEXT").?;
     enable = getProcAddress(@TypeOf(enable), "glEnable").?;
+    disable = getProcAddress(@TypeOf(disable), "glDisable").?;
     textureStorage2DMultisample = getProcAddress(@TypeOf(textureStorage2DMultisample), "glTextureStorage2DMultisample").?;
     textureStorage2D = getProcAddress(@TypeOf(textureStorage2D), "glTextureStorage2D").?;
     createTextures = getProcAddress(@TypeOf(createTextures), "glCreateTextures").?;
@@ -233,6 +253,7 @@ pub fn init(window: ?os.windows.HWND) void {
     blendFunc = getProcAddress(@TypeOf(blendFunc), "glBlendFunc").?;
     blendEquation = getProcAddress(@TypeOf(blendEquation), "glBlendEquation").?;
     vertex2f = getProcAddress(@TypeOf(vertex2f), "glVertex2f").?;
+    vertex2d = getProcAddress(@TypeOf(vertex2d), "glVertex2d").?;
     vertex2i = getProcAddress(@TypeOf(vertex2i), "glVertex2i").?;
     color4f = getProcAddress(@TypeOf(color4f), "glColor4f").?;
     color4ub = getProcAddress(@TypeOf(color4ub), "glColor4ub").?;
@@ -254,6 +275,8 @@ pub fn init(window: ?os.windows.HWND) void {
     deleteProgram = getProcAddress(@TypeOf(deleteProgram), "glDeleteProgram").?;
     memoryBarrier = getProcAddress(@TypeOf(memoryBarrier), "glMemoryBarrier").?;
     colorMask = getProcAddress(@TypeOf(colorMask), "glColorMask").?;
+    getIntegerv = getProcAddress(@TypeOf(getIntegerv), "glGetIntegerv").?;
+    bindTextureUnit = getProcAddress(@TypeOf(bindTextureUnit), "glBindTextureUnit").?;
 }
 
 pub fn deinit() void {
