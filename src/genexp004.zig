@@ -91,10 +91,8 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
                     v = julia(v, 2.0, genexp.prng.random.float(f64));
                     //v = pdj(v, 1.0);
                     //v = sinusoidal(v, 2.7);
-                    v.x *= g_scale;
-                    v.y *= g_scale;
                     gl.color4f(0.01, 0.01, 0.01, 1.0);
-                    gl.vertex2d(v.x + xoff, v.y + yoff);
+                    gl.vertex2d((v.x + xoff) * g_scale, (v.y + yoff) * g_scale);
                 }
             }
             genexp.y += step;
