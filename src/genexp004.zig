@@ -8,10 +8,11 @@ pub const window_name = "genexp004";
 pub const window_width = 2 * 1024;
 pub const window_height = 2 * 1024;
 
-const bounds: f64 = 1.5;
+const bounds: f64 = 3.0;
 
 pub const GenerativeExperimentState = struct {
     prng: std.rand.DefaultPrng,
+    pass: u32 = 0,
     y: f64 = -bounds,
     fs_postprocess: u32 = 0,
     tex_fp32: u32 = 0,
@@ -34,7 +35,7 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     gl.getIntegerv(gl.DRAW_FRAMEBUFFER_BINDING, @ptrCast([*c]c_int, &genexp.fbo_srgb));
 
     gl.clearBufferfv(gl.COLOR, 0, &[_]f32{ 1.0, 1.0, 1.0, 1.0 });
-    gl.pointSize(1.0);
+    gl.pointSize(3.0);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.blendEquation(gl.FUNC_ADD);
     gl.matrixLoadIdentityEXT(gl.PROJECTION);
@@ -61,18 +62,27 @@ pub fn setup(genexp: *GenerativeExperimentState) !void {
     ));
 }
 
-var g_scale: f32 = 1.0;
-
 pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
-    //gl.bindImageTexture(0, genexp.tex_hits, 0, gl.FALSE, 0, gl.READ_WRITE, gl.R32UI);
-    //gl.bindBufferBase(gl.ATOMIC_COUNTER_BUFFER, 0, genexp.buf_max_hits);
-    if (genexp.y <= bounds) {
-        gl.enable(gl.BLEND);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, genexp.fbo_fp32);
-        gl.useProgram(0);
+    gl.enable(gl.BLEND);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, genexp.fbo_fp32);
+    gl.useProgram(0);
 
-        //gl.colorMask(gl.FALSE, gl.FALSE, gl.FALSE, gl.FALSE);
-        //gl.useProgram(genexp.fs_count_hits);
+    if (genexp.y <= bounds and genexp.pass == 0) {
+        gl.begin(gl.POINTS);
+        const step: f64 = 0.001;
+        var row: u32 = 0;
+        while (row < 16) : (row += 1) {
+            var x: f64 = -bounds;
+            while (x <= bounds) : (x += step) {
+                const xoff = genexp.prng.random.floatNorm(f64) * 0.002;
+                const yoff = genexp.prng.random.floatNorm(f64) * 0.002;
+                gl.color4f(0.002, 0.002, 0.002, 1.0);
+                gl.vertex2d(x + xoff, genexp.y + yoff);
+            }
+            genexp.y += step;
+        }
+        gl.end();
+    } else if (genexp.y <= bounds and genexp.pass == 1) {
         gl.begin(gl.POINTS);
         const step: f64 = 0.001;
         var row: u32 = 0;
@@ -81,31 +91,25 @@ pub fn update(genexp: *GenerativeExperimentState, time: f64, dt: f32) void {
             while (x <= bounds) : (x += step) {
                 var v = Vec2d{ .x = x, .y = genexp.y };
                 var i: u32 = 0;
-                while (i < 16) : (i += 1) {
-                    const xoff = genexp.prng.random.floatNorm(f64) * 0.002;
-                    const yoff = genexp.prng.random.floatNorm(f64) * 0.002;
-                    //v = hyperbolic(v, 1.0);
-                    v = sinusoidal(v, 1.0);
-                    v = julia(v, 1.0, genexp.prng.random.float(f64));
+                while (i < 4) : (i += 1) {
+                    const xoff = genexp.prng.random.floatNorm(f64) * 0.01;
+                    const yoff = genexp.prng.random.floatNorm(f64) * 0.01;
+                    v = pdj(v, 1.0);
                     v = julia(v, 1.5, genexp.prng.random.float(f64));
-                    v = julia(v, 2.0, genexp.prng.random.float(f64));
-                    //v = pdj(v, 1.0);
-                    //v = sinusoidal(v, 2.7);
-                    gl.color4f(0.01, 0.01, 0.01, 1.0);
-                    gl.vertex2d((v.x + xoff) * g_scale, (v.y + yoff) * g_scale);
+                    v = hyperbolic(v, 1.0);
+                    v = sinusoidal(v, 2.0);
+                    gl.color4f(0.001, 0.001, 0.001, 1.0);
+                    gl.vertex2d(v.x + xoff, v.y + yoff);
                 }
             }
             genexp.y += step;
         }
         gl.end();
-
-        //gl.colorMask(gl.TRUE, gl.TRUE, gl.TRUE, gl.TRUE);
-        //gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT | gl.ATOMIC_COUNTER_BARRIER_BIT);
     }
 
     if (genexp.y >= bounds) {
         genexp.y = -bounds;
-        g_scale *= 0.75;
+        genexp.pass += 1;
     }
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, genexp.fbo_srgb);
@@ -133,14 +137,14 @@ fn hyperbolic(v: Vec2d, scale: f64) Vec2d {
 }
 
 fn pdj(v: Vec2d, scale: f64) Vec2d {
-    //const pdj_a = 0.1;
-    //const pdj_b = 1.9;
-    //const pdj_c = -0.8;
-    //const pdj_d = -1.2;
-    const pdj_a = 1.0111;
-    const pdj_b = -1.011;
-    const pdj_c = 2.08;
-    const pdj_d = 10.2;
+    const pdj_a = 0.1;
+    const pdj_b = 1.9;
+    const pdj_c = -0.8;
+    const pdj_d = -1.2;
+    //const pdj_a = 1.0111;
+    //const pdj_b = -1.011;
+    //const pdj_c = 2.08;
+    //const pdj_d = 10.2;
     return Vec2d{
         .x = scale * (math.sin(pdj_a * v.y) - math.cos(pdj_b * v.x)),
         .y = scale * (math.sin(pdj_c * v.x) - math.cos(pdj_d * v.y)),
